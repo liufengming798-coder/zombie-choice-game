@@ -24,14 +24,14 @@ window.GAME_DATA = {
       { id: "delivery_king", label: "外卖单王", desc: "熟悉城市路径和补给点，体力与效率都不错。", startBonus: { supplies: 7, health: 4, hunger: -3 } }
     ],
     backgrounds: [
-      { id: "family_man", label: "后勤照料者", desc: "负责伤员和口粮登记，强调照料与秩序。", careers: ["medic", "engineer", "delivery_king", "poet", "standup"], startBonus: { trust: 6, humanity: 4, stress: 2 } },
-      { id: "ex_security", label: "警戒队长", desc: "负责防线和巡逻节奏，决策偏果断。", careers: ["soldier", "scout", "magician", "delivery_king"], startBonus: { ammo: 6, stress: -2, humanity: -4 } },
-      { id: "drifter", label: "外勤跑线人", desc: "负责摸点与送货，适应力强但稳定性一般。", careers: ["scout", "delivery_king", "pet_streamer", "astrologer"], startBonus: { supplies: 8, hunger: -4, trust: -2 } },
-      { id: "divorce_lawyer", label: "谈判裁决官", desc: "负责资源分配谈判和冲突裁决。", careers: ["standup", "astrologer", "poet", "magician"], startBonus: { trust: 3, humanity: -2, supplies: 5 } },
-      { id: "night_shift", label: "夜巡守望者", desc: "负责夜间值守和静默通行。", careers: ["soldier", "engineer", "scout", "medic"], startBonus: { stress: -4, health: 3, hunger: 2 } },
-      { id: "lottery_addict", label: "风险押注手", desc: "负责高风险决策与概率型任务。", careers: ["astrologer", "magician", "pet_streamer", "standup"], startBonus: { supplies: 4, stress: -1, trust: -1 } },
-      { id: "ex_idol_assistant", label: "秩序控场员", desc: "负责人群动线和队伍沟通。", careers: ["standup", "pet_streamer", "delivery_king", "engineer"], startBonus: { trust: 5, shelter: 3, stress: -2 } },
-      { id: "urban_runner", label: "快反搬运员", desc: "负责快速转移与突发撤离。", careers: ["scout", "delivery_king", "soldier", "medic"], startBonus: { health: 5, noise: -2, supplies: 2 } }
+      { id: "role_leader", label: "据点指挥官", desc: "统筹轮班、配给与大方向决策。", careers: ["soldier", "engineer", "standup", "poet"], startBonus: { trust: 7, stress: 2, shelter: 3 } },
+      { id: "role_scavenger", label: "资源搜刮者", desc: "负责外出搜刮与回收高价值物资。", careers: ["scout", "delivery_king", "magician", "pet_streamer"], startBonus: { supplies: 9, noise: 2, health: 2 } },
+      { id: "role_defender", label: "防线守卫者", desc: "负责防线火力与据点入口安全。", careers: ["soldier", "scout", "engineer"], startBonus: { ammo: 8, trust: 2, humanity: -2 } },
+      { id: "role_medic", label: "医疗支援者", desc: "负责伤员救治、感染隔离和药品分配。", careers: ["medic", "engineer", "poet"], startBonus: { health: 5, infection: -5, trust: 3 } },
+      { id: "role_engineer", label: "工事维护者", desc: "负责电力、净水、门禁和陷阱维护。", careers: ["engineer", "delivery_king", "magician"], startBonus: { shelter: 10, supplies: 2, stress: -2 } },
+      { id: "role_infiltrator", label: "潜行渗透者", desc: "负责静默侦察、暗线接触和高风险潜入。", careers: ["scout", "magician", "astrologer"], startBonus: { noise: -8, stress: -2, trust: -2 } },
+      { id: "role_negotiator", label: "交易谈判者", desc: "负责与外部幸存者交易、停火与交换。", careers: ["standup", "astrologer", "pet_streamer", "poet"], startBonus: { trust: 6, supplies: 5, humanity: -1 } },
+      { id: "role_logistics", label: "运输后勤官", desc: "负责搬运路线、库存统计和撤离编组。", careers: ["delivery_king", "engineer", "medic", "pet_streamer"], startBonus: { supplies: 6, hunger: -3, shelter: 4 } }
     ]
   },
   statDefs: [

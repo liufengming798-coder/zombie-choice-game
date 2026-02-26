@@ -113,8 +113,10 @@
 
   function createStore(profileInput) {
     const base = deepClone(data.initialState);
-    const defaultCareer = data.profiles.careers[0].id;
-    const selectedCareer = profileInput?.career || defaultCareer;
+    const careerIds = (data.profiles.careers || []).map(x => x.id);
+    const defaultCareer = careerIds[0];
+    const requestedCareer = profileInput?.career || defaultCareer;
+    const selectedCareer = careerIds.includes(requestedCareer) ? requestedCareer : defaultCareer;
     const allowedForCareer = getAllowedBackgrounds(selectedCareer);
     const defaultBackground = allowedForCareer[0]?.id || data.profiles.backgrounds[0].id;
     const requestedBackground = profileInput?.background || defaultBackground;
@@ -434,9 +436,10 @@
     if (state.flags.career_soldier && special.careerBoost === "soldier") chance += 12;
     if (state.flags.career_engineer && special.careerBoost === "engineer") chance += 12;
 
-    if (state.flags.background_ex_security) chance += 3;
-    if (state.flags.background_family_man) chance += 2;
-    if (state.flags.background_urban_runner) chance += 2;
+    if (state.flags.background_role_defender) chance += 3;
+    if (state.flags.background_role_leader) chance += 2;
+    if (state.flags.background_role_infiltrator) chance += 2;
+    if (state.flags.background_role_medic) chance += 2;
     if (state.flags.career_magician) chance += 3;
 
     return clamp(Math.round(chance), 8, 92);
