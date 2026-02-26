@@ -157,6 +157,16 @@
   }
 
   function applyPassiveDecay(state) {
+    if (state.flags.zombified) {
+      state.stats.hunger = clamp(state.stats.hunger + 1, 0, 100);
+      state.stats.stress = clamp(state.stats.stress + 1, 0, 100);
+      state.stats.supplies = clamp(state.stats.supplies - 1, 0, 100);
+      state.stats.humanity = clamp(state.stats.humanity - 2, 0, 100);
+      state.stats.infection = clamp(state.stats.infection + 1, 40, 100);
+      if (state.stats.humanity <= 16) state.stats.health = clamp(state.stats.health - 2, 0, 100);
+      return;
+    }
+
     const stage = getStage(state.day);
     const hungerGain = stage <= 2 ? 3 : stage === 3 ? 4 : 5;
     const stressGain = state.stats.shelter < 30 ? 4 : 2;
@@ -240,12 +250,26 @@
     if (state.flags.career_medic && (event.category === "同伴互动" || event.category === "庇护所管理")) w *= 1.08;
     if (state.flags.career_scout && event.category === "探索") w *= 1.1;
     if (state.flags.career_soldier && event.category === "战斗") w *= 1.08;
+    if (state.flags.career_engineer && event.category === "庇护所管理") w *= 1.1;
+    if (state.flags.career_standup && (event.category === "同伴互动" || event.category === "职业专属")) w *= 1.1;
+    if (state.flags.career_astrologer && event.category === "特殊事件") w *= 1.1;
+    if (state.flags.career_pet_streamer && event.category === "职业专属") w *= 1.08;
+    if (state.flags.career_poet && (event.category === "道德困境" || event.category === "职业专属")) w *= 1.08;
+    if (state.flags.career_magician && (event.category === "探索" || event.category === "特殊事件")) w *= 1.08;
+    if (state.flags.career_delivery_king && event.category === "探索") w *= 1.1;
+
+    if (state.flags.zombified) {
+      if (event.category === "丧尸分支") w *= 2.4;
+      if (event.category === "职业专属" || event.category === "同伴互动") w *= 0.85;
+    }
 
     if (event.isKey && stage >= 4 && !state.doneOnceEvents[event.id]) w *= 1.25;
     if (event.id === "k_radio_tower" && stage >= 4 && !state.flags.knowsEvacPoint) w *= 1.6;
     if (event.id === "k_bridge_blast" && stage >= 5 && state.flags.knowsEvacPoint && !state.flags.bridgeOpen) w *= 1.7;
     if (event.id === "k_refugee_vote" && stage >= 4 && !state.flags.finalVoteDone) w *= 1.4;
     if (event.id === "k_final_hall" && stage >= 5 && state.day >= 21 && !state.flags.sacrificeMade) w *= 1.3;
+    if (event.id === "k_turning_point" && state.stats.infection >= 55 && !state.flags.zombified) w *= 2.4;
+    if (event.id === "r_mutation_offer" && state.stats.infection >= 42 && !state.flags.zombified) w *= 1.8;
 
     return w;
   }
@@ -400,6 +424,8 @@
 
     if (state.flags.background_ex_security) chance += 3;
     if (state.flags.background_family_man) chance += 2;
+    if (state.flags.background_urban_runner) chance += 2;
+    if (state.flags.career_magician) chance += 3;
 
     return clamp(Math.round(chance), 8, 92);
   }

@@ -37,6 +37,10 @@ function matchCondition(state, cond) {
   if (cond.flagsAll && !cond.flagsAll.every(f => !!state.flags[f])) return false;
   if (cond.flagsAny && !cond.flagsAny.some(f => !!state.flags[f])) return false;
   if (cond.flagsNot && cond.flagsNot.some(f => !!state.flags[f])) return false;
+  if (cond.profile) {
+    if (cond.profile.career && state.profile?.career !== cond.profile.career) return false;
+    if (cond.profile.background && state.profile?.background !== cond.profile.background) return false;
+  }
   if (cond.stats) {
     for (const [key, rule] of Object.entries(cond.stats)) {
       if (!matchComparators(readStat(state, key), rule)) return false;
@@ -60,8 +64,13 @@ function weightedPick(items, getWeight) {
 }
 
 function createState() {
-  return {
+  const careers = (data.profiles?.careers || []).map(c => c.id);
+  const backgrounds = (data.profiles?.backgrounds || []).map(b => b.id);
+  const career = careers[Math.floor(Math.random() * Math.max(1, careers.length))] || 'medic';
+  const background = backgrounds[Math.floor(Math.random() * Math.max(1, backgrounds.length))] || 'family_man';
+  const state = {
     ...deepClone(data.initialState),
+    profile: { name: 'Sim', career, background },
     turn: 0,
     currentEventId: null,
     queue: [],
@@ -70,9 +79,29 @@ function createState() {
     doneOnceEvents: {},
     recentEvents: [],
   };
+  const c = (data.profiles?.careers || []).find(x => x.id === career);
+  const b = (data.profiles?.backgrounds || []).find(x => x.id === background);
+  [c?.startBonus || {}, b?.startBonus || {}].forEach(bundle => {
+    for (const [key, delta] of Object.entries(bundle)) {
+      const def = data.statDefs.find(s => s.key === key);
+      if (!def) continue;
+      state.stats[key] = clamp(state.stats[key] + delta, def.min, def.max);
+    }
+  });
+  return state;
 }
 
 function applyPassiveDecay(state) {
+  if (state.flags.zombified) {
+    state.stats.hunger = clamp(state.stats.hunger + 1, 0, 100);
+    state.stats.stress = clamp(state.stats.stress + 1, 0, 100);
+    state.stats.supplies = clamp(state.stats.supplies - 1, 0, 100);
+    state.stats.humanity = clamp(state.stats.humanity - 2, 0, 100);
+    state.stats.infection = clamp(state.stats.infection + 1, 40, 100);
+    if (state.stats.humanity <= 16) state.stats.health = clamp(state.stats.health - 2, 0, 100);
+    return;
+  }
+
   const stage = getStage(state.day);
   const hungerGain = stage <= 2 ? 3 : stage === 3 ? 4 : 5;
   const stressGain = state.stats.shelter < 30 ? 4 : 2;
@@ -132,6 +161,10 @@ function computeEventWeight(state, event) {
   if (event.category === '交易' && state.stats.supplies <= 30) w *= 1.3;
   if (event.category === '庇护所管理' && state.stats.shelter <= 35) w *= 1.25;
   if (event.category === '同伴互动' && state.stats.trust <= 35) w *= 1.2;
+  if (state.flags.zombified) {
+    if (event.category === '丧尸分支') w *= 2.4;
+    if (event.category === '职业专属' || event.category === '同伴互动') w *= 0.85;
+  }
   if (event.isKey && stage >= 4 && !state.doneOnceEvents[event.id]) w *= 1.25;
   if (event.id === 'k_radio_tower' && stage >= 4 && !state.flags.knowsEvacPoint) w *= 1.6;
   if (event.id === 'k_bridge_blast' && stage >= 5 && state.flags.knowsEvacPoint && !state.flags.bridgeOpen) w *= 1.7;

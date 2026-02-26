@@ -15,12 +15,23 @@ window.GAME_DATA = {
       { id: "medic", label: "急救员", desc: "擅长处理伤病与感染，特殊检定更稳定。", startBonus: { health: 6, infection: -4, supplies: -2 } },
       { id: "scout", label: "侦察员", desc: "路线判断更强，探索效率高。", startBonus: { noise: -6, supplies: 4, stress: -2 } },
       { id: "soldier", label: "退役士兵", desc: "战斗反应快，弹药利用率更高。", startBonus: { ammo: 10, trust: 2, humanity: -2 } },
-      { id: "engineer", label: "维修技师", desc: "擅长庇护所维护与设备修复。", startBonus: { shelter: 10, supplies: 3, stress: -1 } }
+      { id: "engineer", label: "维修技师", desc: "擅长庇护所维护与设备修复。", startBonus: { shelter: 10, supplies: 3, stress: -1 } },
+      { id: "standup", label: "脱口秀演员", desc: "能在高压下逗笑同伴，降低群体紧绷。", startBonus: { stress: -8, trust: 5, humanity: 2 } },
+      { id: "astrologer", label: "星座咨询师", desc: "靠玄学维持秩序，偶尔误打误撞。", startBonus: { stress: -4, supplies: 2, trust: 2 } },
+      { id: "pet_streamer", label: "宠物区主播", desc: "擅长用奇怪方式吸引注意力，也擅长带节奏。", startBonus: { noise: 6, trust: 6, supplies: 3 } },
+      { id: "poet", label: "废土诗人", desc: "写字能稳住心态，但常错过最佳时机。", startBonus: { humanity: 8, stress: -5, ammo: -4 } },
+      { id: "magician", label: "街头魔术师", desc: "手快心细，擅长制造干扰与错觉。", startBonus: { noise: -4, supplies: 5, trust: 2 } },
+      { id: "delivery_king", label: "外卖单王", desc: "熟悉城市路径和补给点，体力与效率都不错。", startBonus: { supplies: 7, health: 4, hunger: -3 } }
     ],
     backgrounds: [
       { id: "family_man", label: "有家可念", desc: "更重视同伴与秩序，信任成长更稳。", startBonus: { trust: 6, humanity: 4, stress: 2 } },
       { id: "ex_security", label: "前安保人员", desc: "危机应对更果断，但更容易强硬。", startBonus: { ammo: 6, stress: -2, humanity: -4 } },
-      { id: "drifter", label: "流动打工者", desc: "适应力强，前期生存效率更高。", startBonus: { supplies: 8, hunger: -4, trust: -2 } }
+      { id: "drifter", label: "流动打工者", desc: "适应力强，前期生存效率更高。", startBonus: { supplies: 8, hunger: -4, trust: -2 } },
+      { id: "divorce_lawyer", label: "离婚律师", desc: "擅长谈判和切割利益关系。", startBonus: { trust: 3, humanity: -2, supplies: 5 } },
+      { id: "night_shift", label: "夜班常驻", desc: "昼夜颠倒习惯让你在守夜中更稳定。", startBonus: { stress: -4, health: 3, hunger: 2 } },
+      { id: "lottery_addict", label: "老彩民", desc: "喜欢赌概率，偶尔爆赚偶尔血亏。", startBonus: { supplies: 4, stress: -1, trust: -1 } },
+      { id: "ex_idol_assistant", label: "前偶像助理", desc: "控场能力强，能协调多人节奏。", startBonus: { trust: 5, shelter: 3, stress: -2 } },
+      { id: "urban_runner", label: "城市夜跑者", desc: "耐力好，撤离与搬运效率更高。", startBonus: { health: 5, noise: -2, supplies: 2 } }
     ]
   },
   statDefs: [
@@ -62,7 +73,9 @@ window.GAME_DATA = {
       intimateBond: false,
       finalVoteDone: false,
       ledCommunity: false,
-      sacrificeMade: false
+      sacrificeMade: false,
+      zombified: false,
+      zombieAwakened: false
     }
   },
   endings: [
@@ -71,70 +84,91 @@ window.GAME_DATA = {
       priority: 100,
       title: "结局：尸潮淹没",
       text: "噪音和疲惫把我拖进了最糟的节奏。楼道里最后一盏灯熄灭时，我听见的不是枪声，而是门栓断裂的声音。",
-      condition: { any: [{ stats: { health: { lte: 0 } } }, { stats: { infection: { gte: 100 } } }] }
+      condition: { any: [{ stats: { health: { lte: 0 } } }, { all: [{ stats: { infection: { gte: 100 } } }, { flagsNot: ["zombified"] }] }] }
     },
     {
       id: "end_starved",
       priority: 95,
       title: "结局：慢性消失",
       text: "物资耗尽后，我的选择开始失去意义。没有一击致命，只有连续很多天的体力和判断力衰减。",
-      condition: { all: [{ stats: { supplies: { lte: 1 } } }, { stats: { hunger: { gte: 96 } } }, { dayGte: 20 }] }
+      condition: { all: [{ stats: { supplies: { lte: 1 } } }, { stats: { hunger: { gte: 96 } } }, { dayGte: 20 }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_breakdown",
       priority: 90,
       title: "结局：精神坍塌",
       text: "我还会呼吸，但已经无法区分噪声和现实。这个城市没有杀死我，只是把我磨成了空壳。",
-      condition: { all: [{ stats: { stress: { gte: 95 } } }, { stats: { humanity: { lte: 18 } } }] }
+      condition: { all: [{ stats: { stress: { gte: 95 } } }, { stats: { humanity: { lte: 18 } } }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_carrier_exile",
       priority: 80,
       title: "结局：带毒流亡",
       text: "感染没有立刻要我的命，但每一步都像踩在玻璃上。为了不拖累别人，我主动离开了据点。",
-      condition: { all: [{ dayGte: 20 }, { stats: { infection: { gte: 78 } } }, { stats: { health: { gte: 20 } } }] }
+      condition: { all: [{ dayGte: 20 }, { stats: { infection: { gte: 78 } } }, { stats: { health: { gte: 20 } } }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_warlord",
       priority: 70,
       title: "结局：冷血统治",
       text: "我活了下来，也成了别人夜里不敢关灯的理由。末日里有秩序，但那是恐惧做的秩序。",
-      condition: { all: [{ dayGte: 24 }, { flagsAll: ["joinedMilitia"] }, { flagsAll: ["bloodOnHands"] }, { stats: { humanity: { lte: 25 } } }, { stats: { trust: { gte: 58 } } }] }
+      condition: { all: [{ dayGte: 24 }, { flagsAll: ["joinedMilitia"] }, { flagsAll: ["bloodOnHands"] }, { stats: { humanity: { lte: 25 } } }, { stats: { trust: { gte: 58 } } }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_lone_walker",
       priority: 60,
       title: "结局：独行者",
       text: "我没有死，也没能真正留下谁。背包越来越轻，脚步越来越机械，城市在我身后一层层褪色。",
-      condition: { all: [{ dayGte: 24 }, { stats: { trust: { lte: 30 } } }, { flagsNot: ["ledCommunity"] }, { flagsNot: ["sacrificeMade"] }] }
+      condition: { all: [{ dayGte: 24 }, { stats: { trust: { lte: 30 } } }, { flagsNot: ["ledCommunity"] }, { flagsNot: ["sacrificeMade"] }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_evac",
       priority: 55,
       title: "结局：撤离航线",
       text: "我按无线电给的时刻到达桥头。撤离艇并不体面，甲板拥挤、空气刺鼻，但它真的开走了。",
-      condition: { all: [{ dayGte: 22 }, { flagsAll: ["knowsEvacPoint", "bridgeOpen"] }, { stats: { health: { gte: 30 } } }, { stats: { infection: { lte: 70 } } }] }
+      condition: { all: [{ dayGte: 22 }, { flagsAll: ["knowsEvacPoint", "bridgeOpen"] }, { stats: { health: { gte: 30 } } }, { stats: { infection: { lte: 70 } } }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_martyr",
       priority: 50,
       title: "结局：牺牲式胜利",
       text: "我把最后的弹链和电池都留给了身后的人。防火门落下时，我知道自己换到的是别人的明天。",
-      condition: { all: [{ flagsAll: ["sacrificeMade"] }, { dayGte: 21 }] }
+      condition: { all: [{ flagsAll: ["sacrificeMade"] }, { dayGte: 21 }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_community",
       priority: 45,
       title: "结局：小型共同体",
       text: "我们修好了发电机，分配了守夜和口粮。没有英雄，只有一群还能互相提醒别睡着的人。",
-      condition: { all: [{ dayGte: 24 }, { stats: { shelter: { gte: 66 } } }, { stats: { trust: { gte: 58 } } }, { stats: { humanity: { gte: 45 } } }, { flagsAll: ["ledCommunity"] }] }
+      condition: { all: [{ dayGte: 24 }, { stats: { shelter: { gte: 66 } } }, { stats: { trust: { gte: 58 } } }, { stats: { humanity: { gte: 45 } } }, { flagsAll: ["ledCommunity"] }, { flagsNot: ["zombified"] }] }
     },
     {
       id: "end_gray_survival",
       priority: 1,
       title: "结局：灰色生还",
       text: "我活过了这一轮高峰。没有凯旋，没有庆祝，只有下一张巡逻表和下一顿怎么省出来。",
-      condition: { dayGte: 30 }
+      condition: { all: [{ dayGte: 30 }, { flagsNot: ["zombified"] }] }
+    },
+    {
+      id: "end_zombie_alpha",
+      priority: 52,
+      title: "结局：尸群引路者",
+      text: "{name}不再被嘶吼吸引，反而能引导它们转向。你成了人类和尸群之间最危险的灰色变量。",
+      condition: { all: [{ dayGte: 24 }, { flagsAll: ["zombified"] }, { stats: { humanity: { gte: 28 } } }] }
+    },
+    {
+      id: "end_zombie_feral",
+      priority: 88,
+      title: "结局：失控尸化",
+      text: "意识像旧磁带一样断断续续。最后留下来的只有咬合、追逐和一条没有终点的走廊。",
+      condition: { all: [{ flagsAll: ["zombified"] }, { stats: { humanity: { lte: 12 } } }, { dayGte: 20 }] }
+    },
+    {
+      id: "end_zombie_wander",
+      priority: 46,
+      title: "结局：半腐行者",
+      text: "{name}既不完全属于人群，也不完全属于尸群。你在两种本能之间游走，成为所有势力都警惕的传闻。",
+      condition: { all: [{ flagsAll: ["zombified"] }, { dayGte: 24 }, { stats: { humanity: { gte: 13, lte: 27 } } }] }
     }
   ],
   events: [
@@ -365,6 +399,29 @@ window.GAME_DATA = {
           label: "接受靠近，但约定不影响判断",
           effects: { stats: { stress: -12, trust: 8, humanity: 2 }, flagsSet: { intimateBond: true } },
           result: "那一刻我们只是互相借了点体温，第二天依旧照常巡逻。"
+        }
+      ]
+    },
+    {
+      id: "k_turning_point",
+      isKey: true,
+      once: true,
+      weight: 10,
+      cooldown: 99,
+      category: "特殊事件",
+      condition: { stageGte: 2, stats: { infection: { gte: 55 } }, flagsNot: ["zombified"] },
+      title: "尸化临界",
+      body: "{name}的体温突然降到异常值，耳边开始出现失真嘶鸣。我的意识还在，但饥饿感像钉子一样钉进胃里。",
+      choices: [
+        {
+          label: "强压理智，接受尸化而不失控",
+          effects: { stats: { infection: -25, health: 10, stress: -12, humanity: -8 }, flagsSet: { zombified: true, zombieAwakened: true } },
+          result: "我没有彻底倒下，只是换了一种更危险的活法。"
+        },
+        {
+          label: "继续按人类方式硬撑",
+          effects: { stats: { infection: 12, health: -12, stress: 10 } },
+          result: "我咬牙硬撑，但每一步都更像在和自己的身体作战。"
         }
       ]
     },
@@ -952,6 +1009,162 @@ window.GAME_DATA = {
       choices: [
         { label: "现场抢修", effects: { stats: { shelter: 8, supplies: -10, stress: 5 }, flagsSet: { bridgeOpen: true } }, result: "我把钢缆打进裂缝，桥面总算能过人。" },
         { label: "冒险快速通过", effects: { stats: { trust: -6, health: -6, stress: 3 }, flagsSet: { bridgeOpen: true } }, result: "我们冲了过去，但有两人脚踝受伤。" }
+      ]
+    },
+    {
+      id: "c_standup_openmic",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "standup" }, stageGte: 2 },
+      title: "废土开放麦",
+      body: "{name}把空弹壳当麦克风，硬是在配给前讲了五分钟段子。",
+      choices: [
+        { label: "拿自己开涮缓和气氛", effects: { stats: { stress: -10, trust: 8, humanity: 2 } }, result: "人群里终于有人笑出声，冲突被暂时推后。" },
+        { label: "拿民兵开涮带节奏", effects: { stats: { trust: 5, noise: 6, stress: -6 }, flagsSet: { joinedMilitia: false } }, result: "气氛炸了，但也有人担心我会被报复。" }
+      ]
+    },
+    {
+      id: "c_astrologer_moon",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "astrologer" }, stageGte: 2 },
+      title: "月相作战表",
+      body: "我在墙上画出“今日宜撤离”的月相图，居然真有一队人按图执行。",
+      choices: [
+        { label: "坚持玄学指挥", effects: { stats: { stress: -6, trust: 4 }, outcomes: [{ weight: 1, text: "这次赌赢了。", effects: { stats: { supplies: 10 } } }, { weight: 1, text: "这次赌输了。", effects: { stats: { health: -8, trust: -4 } } }] }, result: "我把粉笔一扔，等待命运判决。" },
+        { label: "改成半玄学半侦察", effects: { stats: { trust: 3, supplies: 4, stress: -3 } }, result: "我嘴上讲星座，手上还是照着地图走。" }
+      ]
+    },
+    {
+      id: "c_pet_streamer_decoy",
+      weight: 4,
+      cooldown: 8,
+      category: "职业专属",
+      condition: { profile: { career: "pet_streamer" }, stageGte: 3 },
+      title: "逗猫棒诱敌",
+      body: "{name}翻出一根会响的逗猫棒和旧手机外放器，决定试试离谱的引流法。",
+      choices: [
+        { label: "远程引开尸群", effects: { stats: { noise: -10, supplies: 6, stress: -4 } }, result: "离谱归离谱，尸群真的被带偏了两条街。" },
+        { label: "直播式高调执行", effects: { stats: { noise: 16, trust: 6, supplies: 8 } }, result: "大家都看傻了，战果也确实不错。" }
+      ]
+    },
+    {
+      id: "c_poet_wall",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "poet" }, stageGte: 2 },
+      title: "防火墙诗句",
+      body: "我在防火门上写下一行短句: “如果明天还在，我们就还算人。”",
+      choices: [
+        { label: "公开朗读给全员", effects: { stats: { humanity: 10, stress: -6, trust: 4 } }, result: "没有掌声，但很多人那晚没有再吵架。" },
+        { label: "只留给值夜班", effects: { stats: { humanity: 5, trust: 2, stress: -3, shelter: 3 } }, result: "字迹被手电照亮，夜班轮换顺了很多。" }
+      ]
+    },
+    {
+      id: "c_magician_hand",
+      weight: 4,
+      cooldown: 8,
+      category: "职业专属",
+      condition: { profile: { career: "magician" }, stageGte: 3 },
+      title: "空手变钥匙",
+      body: "{name}用别针和旧卡片在门锁前晃了十秒，像在表演，实际上是在开锁。",
+      choices: [
+        { label: "低调开锁潜入", effects: { stats: { supplies: 9, noise: -6, stress: -2 } }, result: "门轻轻弹开，里面的工具箱还完整。" },
+        { label: "高调表演提振士气", effects: { stats: { trust: 7, noise: 8, humanity: 2 } }, result: "气氛被拉满，隔壁街区也听到了掌声和响动。" }
+      ]
+    },
+    {
+      id: "c_delivery_dash",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "delivery_king" }, stageGte: 2 },
+      title: "末日加急单",
+      body: "我给补给路线起了订单号，按“超时赔命”的标准安排了三条并行线。",
+      choices: [
+        { label: "全速执行配送", effects: { stats: { supplies: 12, health: -6, stress: 3 } }, result: "货到了，人也快散架了。" },
+        { label: "拆单分批稳送", effects: { stats: { supplies: 8, trust: 5, stress: -2 } }, result: "效率低一点，但每条线都按时返回。" }
+      ]
+    },
+    {
+      id: "z_ghoul_patrol",
+      weight: 5,
+      cooldown: 5,
+      category: "丧尸分支",
+      condition: { flagsAll: ["zombified"], stageGte: 4 },
+      title: "尸群巡游",
+      body: "尸化后的我能听懂它们的节奏。不是语言，更像一阵阵同步的饥饿脉冲。",
+      choices: [
+        { label: "引开尸群保护据点", effects: { stats: { trust: 10, humanity: -4, health: -5 } }, result: "我把尸群带离据点，回来时所有人都下意识后退了一步。" },
+        { label: "利用尸群压迫敌对人类", effects: { stats: { supplies: 10, humanity: -10, trust: -6 } }, result: "我们抢到了资源，也跨过了很难回头的线。" }
+      ]
+    },
+    {
+      id: "r_mutation_offer",
+      weight: 8,
+      cooldown: 4,
+      category: "特殊事件",
+      condition: { stageGte: 2, stats: { infection: { gte: 42 } }, flagsNot: ["zombified"] },
+      title: "坏死边缘",
+      body: "伤口边缘已经发黑。黑医说，要么继续当人慢慢熬，要么用一针“改造剂”把我推到另一边。",
+      choices: [
+        { label: "拒绝改造，继续做人", effects: { stats: { infection: 8, humanity: 4, stress: 6 } }, result: "我把针管扔进火里，决定继续硬撑。" },
+        { label: "注射改造剂，换一种活法", effects: { stats: { infection: -12, health: 8, humanity: -12, stress: -5 }, flagsSet: { zombified: true, zombieAwakened: true } }, result: "针剂推完后，我先听见了自己的心跳，再听见了远处尸群的节奏。" }
+      ]
+    },
+    {
+      id: "z_masked_talk",
+      weight: 4,
+      cooldown: 6,
+      category: "丧尸分支",
+      condition: { flagsAll: ["zombified"], stats: { trust: { gte: 30 } } },
+      title: "隔着防毒面具的谈判",
+      body: "他们把枪口压低，但没人愿意摘下面罩。{name}得先证明自己还保留理智。",
+      choices: [
+        { label: "主动交出武器示弱", effects: { stats: { trust: 8, humanity: 4, ammo: -8 } }, result: "气氛缓了下来，我换回了继续留在队里的资格。" },
+        { label: "以情报换信任", effects: { stats: { trust: 6, supplies: 6, stress: -3 } }, result: "我给出尸群迁移线，换来一次短暂合作。" }
+      ]
+    },
+    {
+      id: "z_cold_hunger",
+      weight: 5,
+      cooldown: 5,
+      category: "丧尸分支",
+      condition: { flagsAll: ["zombified"], stageGte: 4 },
+      title: "冷饥饿发作",
+      body: "胃里像塞进一把碎冰。食物不再有效，气味和体温反而刺得我头皮发麻。",
+      choices: [
+        { label: "强行压制冲动", effects: { stats: { humanity: 6, health: -6, stress: 8 } }, result: "我咬破嘴唇让自己清醒，暂时撑住了底线。" },
+        { label: "释放本能短时爆发", effects: { stats: { health: 10, humanity: -10, trust: -8 } }, result: "力量回来了，队友看我的眼神却彻底变了。" }
+      ]
+    },
+    {
+      id: "z_subway_howl",
+      weight: 4,
+      cooldown: 7,
+      category: "丧尸分支",
+      condition: { flagsAll: ["zombified"], stageGte: 5 },
+      title: "地铁回声",
+      body: "{name}在废弃地铁口发出一次低吼，远处的游荡者开始改变方向。",
+      choices: [
+        { label: "把尸群引向空区", effects: { stats: { noise: -8, trust: 6, humanity: -3 } }, result: "它们真的听从了回声，主路压力瞬间下降。" },
+        { label: "把尸群引向敌对据点", effects: { stats: { supplies: 9, humanity: -9, stress: -2 } }, result: "我用最脏的方式赢了一次资源战。" }
+      ]
+    },
+    {
+      id: "z_memory_flash",
+      weight: 4,
+      cooldown: 8,
+      category: "丧尸分支",
+      condition: { flagsAll: ["zombified"], stageGte: 4 },
+      title: "记忆闪回",
+      body: "某个熟悉名字突然把我拉回人类记忆。那一秒，我几乎忘了自己已经变成什么。",
+      choices: [
+        { label: "抓住记忆锚点", effects: { stats: { humanity: 10, stress: -6, trust: 4 } }, result: "我把那名字写在袖口，提醒自己还剩一点人样。" },
+        { label: "切断情绪专注生存", effects: { stats: { health: 6, humanity: -8, stress: -4 } }, result: "我变得更高效，也更陌生。" }
       ]
     },
     {
