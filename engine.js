@@ -1,5 +1,6 @@
 (function () {
-  const SAVE_KEY = "zombie_choice_save_v2";
+  const SAVE_KEY = "zombie_choice_save_v3";
+  const LEGACY_SAVE_KEYS = ["zombie_choice_save_v2"];
   const data = window.GAME_DATA;
 
   function deepClone(obj) {
@@ -52,6 +53,11 @@
     if (cond.flagsAny && !cond.flagsAny.some(f => !!state.flags[f])) return false;
     if (cond.flagsNot && cond.flagsNot.some(f => !!state.flags[f])) return false;
 
+    if (cond.profile) {
+      if (cond.profile.career && state.profile.career !== cond.profile.career) return false;
+      if (cond.profile.background && state.profile.background !== cond.profile.background) return false;
+    }
+
     if (cond.stats) {
       for (const [key, rule] of Object.entries(cond.stats)) {
         if (!matchComparators(readStat(state, key), rule)) return false;
@@ -77,10 +83,43 @@
     return weighted[weighted.length - 1].item;
   }
 
-  function createStore() {
+  function getProfileDef(type, id) {
+    const group = type === "career" ? data.profiles.careers : data.profiles.backgrounds;
+    return group.find(x => x.id === id) || group[0];
+  }
+
+  function applyProfileBonus(state) {
+    const c = getProfileDef("career", state.profile.career);
+    const b = getProfileDef("background", state.profile.background);
+
+    const bundles = [c.startBonus || {}, b.startBonus || {}];
+    bundles.forEach(bundle => {
+      for (const [key, delta] of Object.entries(bundle)) {
+        const def = getStatDef(key);
+        if (!def) continue;
+        state.stats[key] = clamp(state.stats[key] + delta, def.min, def.max);
+      }
+    });
+
+    state.flags[`career_${c.id}`] = true;
+    state.flags[`background_${b.id}`] = true;
+  }
+
+  function createStore(profileInput) {
     const base = deepClone(data.initialState);
-    return {
+    const defaultCareer = data.profiles.careers[0].id;
+    const defaultBackground = data.profiles.backgrounds[0].id;
+    const profile = {
+      name: (profileInput?.name || "无名")
+        .replace(/\s+/g, "")
+        .slice(0, 12) || "无名",
+      career: profileInput?.career || defaultCareer,
+      background: profileInput?.background || defaultBackground
+    };
+
+    const state = {
       ...base,
+      profile,
       turn: 0,
       lastResult: "",
       currentEventId: null,
@@ -89,7 +128,31 @@
       seenCounts: {},
       lastSeenTurn: {},
       doneOnceEvents: {},
-      recentEvents: []
+      recentEvents: [],
+      specialContext: null
+    };
+
+    applyProfileBonus(state);
+    return state;
+  }
+
+  function normalizeState(raw) {
+    const seeded = createStore(raw?.profile);
+    if (!raw || typeof raw !== "object") return seeded;
+
+    return {
+      ...seeded,
+      ...raw,
+      stats: { ...seeded.stats, ...(raw.stats || {}) },
+      flags: { ...seeded.flags, ...(raw.flags || {}) },
+      profile: { ...seeded.profile, ...(raw.profile || {}) },
+      queue: Array.isArray(raw.queue) ? raw.queue : [],
+      log: Array.isArray(raw.log) ? raw.log : [],
+      seenCounts: raw.seenCounts || {},
+      lastSeenTurn: raw.lastSeenTurn || {},
+      doneOnceEvents: raw.doneOnceEvents || {},
+      recentEvents: Array.isArray(raw.recentEvents) ? raw.recentEvents : [],
+      specialContext: raw.specialContext || null
     };
   }
 
@@ -103,7 +166,6 @@
     state.stats.stress = clamp(state.stats.stress + stressGain, 0, 100);
     state.stats.supplies = clamp(state.stats.supplies - supplyDrain, 0, 100);
 
-    // Supply collapse accelerates hunger in late-game, not from day 1.
     if (stage >= 4 && state.stats.supplies <= 12) {
       state.stats.hunger = clamp(state.stats.hunger + 2, 0, 100);
     }
@@ -175,7 +237,10 @@
     if (event.category === "庇护所管理" && state.stats.shelter <= 35) w *= 1.25;
     if (event.category === "同伴互动" && state.stats.trust <= 35) w *= 1.2;
 
-    // Story director: in late stages, bias toward unresolved key arcs.
+    if (state.flags.career_medic && (event.category === "同伴互动" || event.category === "庇护所管理")) w *= 1.08;
+    if (state.flags.career_scout && event.category === "探索") w *= 1.1;
+    if (state.flags.career_soldier && event.category === "战斗") w *= 1.08;
+
     if (event.isKey && stage >= 4 && !state.doneOnceEvents[event.id]) w *= 1.25;
     if (event.id === "k_radio_tower" && stage >= 4 && !state.flags.knowsEvacPoint) w *= 1.6;
     if (event.id === "k_bridge_blast" && stage >= 5 && state.flags.knowsEvacPoint && !state.flags.bridgeOpen) w *= 1.7;
@@ -207,6 +272,22 @@
     return weightedPick(randomPool, e => computeEventWeight(state, e));
   }
 
+  function ensureSpecialContext(state, event) {
+    if (!event.special) return;
+    if (state.specialContext?.eventId === event.id) return;
+
+    if (event.special.type === "route_pick") {
+      const routes = event.special.routes || [];
+      state.specialContext = {
+        eventId: event.id,
+        safeRoute: Math.floor(Math.random() * Math.max(1, routes.length))
+      };
+      return;
+    }
+
+    state.specialContext = { eventId: event.id };
+  }
+
   function recordEventSeen(state, event) {
     state.currentEventId = event.id;
     state.seenCounts[event.id] = (state.seenCounts[event.id] || 0) + 1;
@@ -215,6 +296,8 @@
 
     state.recentEvents.unshift(event.id);
     state.recentEvents = state.recentEvents.slice(0, 7);
+
+    ensureSpecialContext(state, event);
   }
 
   function resolveChoiceOutcome(choice) {
@@ -228,24 +311,117 @@
   }
 
   function buildChoiceView(state, event) {
+    if (event.special) return [];
+
     return event.choices.map((choice, idx) => {
       const ok = matchCondition(state, choice.condition);
       return {
         id: idx,
-        label: choice.label,
+        label: tpl(choice.label, state),
         disabled: !ok
       };
     });
   }
 
+  function profileMeta(state) {
+    const c = getProfileDef("career", state.profile.career);
+    const b = getProfileDef("background", state.profile.background);
+    return { name: state.profile.name, careerLabel: c.label, backgroundLabel: b.label };
+  }
+
+  function tpl(text, state) {
+    if (!text) return "";
+    const meta = profileMeta(state);
+    return String(text)
+      .replaceAll("{name}", meta.name)
+      .replaceAll("{career}", meta.careerLabel)
+      .replaceAll("{background}", meta.backgroundLabel);
+  }
+
+  function getSpecialView(state, event) {
+    if (!event.special) return null;
+    const sp = event.special;
+
+    if (sp.type === "skill_check") {
+      const base = sp.baseChance || 50;
+      return {
+        type: sp.type,
+        title: sp.title,
+        description: tpl(sp.description, state),
+        meta: `基础成功率 ${base}% · 使用判定 ${sp.statLabel || "综合"}`,
+        actionLabel: sp.actionLabel || "执行检定",
+        timerSec: sp.timerSec || 0
+      };
+    }
+
+    if (sp.type === "route_pick") {
+      return {
+        type: sp.type,
+        title: sp.title,
+        description: tpl(sp.description, state),
+        meta: "从三条路线中选一条，只有一条是安全线。",
+        routes: sp.routes || [],
+        actionLabel: sp.actionLabel || "确认路线",
+        timerSec: sp.timerSec || 0
+      };
+    }
+
+    return null;
+  }
+
+  function settleTurn(state, event, actionLabel, result) {
+    state.lastResult = result;
+    state.log.unshift(`第${state.day}天：${tpl(event.title, state)} -> ${tpl(actionLabel, state)}。${result}`);
+    state.log = state.log.slice(0, 90);
+
+    state.turn += 1;
+    state.day += 1;
+    applyPassiveDecay(state);
+
+    state.currentEventId = null;
+    state.specialContext = null;
+  }
+
+  function getSkillCheckChance(state, special) {
+    const base = special.baseChance || 50;
+    const statValue = readStat(state, special.stat || "health");
+
+    let chance = base;
+    if (special.stat === "stress" || special.stat === "infection" || special.stat === "noise" || special.stat === "hunger") {
+      chance += (55 - statValue) * 0.45;
+    } else {
+      chance += (statValue - 50) * 0.35;
+    }
+
+    if (state.flags.career_medic && special.careerBoost === "medic") chance += 12;
+    if (state.flags.career_scout && special.careerBoost === "scout") chance += 12;
+    if (state.flags.career_soldier && special.careerBoost === "soldier") chance += 12;
+    if (state.flags.career_engineer && special.careerBoost === "engineer") chance += 12;
+
+    if (state.flags.background_ex_security) chance += 3;
+    if (state.flags.background_family_man) chance += 2;
+
+    return clamp(Math.round(chance), 8, 92);
+  }
+
   const game = {
     state: createStore(),
 
-    reset() {
-      this.state = createStore();
-      this.state.lastResult = "我从废弃仓库醒来，电台里只剩杂音。";
+    getProfileOptions() {
+      return deepClone(data.profiles);
+    },
+
+    start(profileInput) {
+      this.state = createStore(profileInput);
+      const c = getProfileDef("career", this.state.profile.career);
+      const b = getProfileDef("background", this.state.profile.background);
+      this.state.lastResult = `${this.state.profile.name}，${c.label}，${b.label}。我在电台杂音里确认了一件事: 今天必须活下去。`;
       this.state.log.unshift(`第1天：${this.state.lastResult}`);
       return this.getCurrentView(true);
+    },
+
+    reset(profileInput) {
+      return this.start(profileInput || this.state.profile);
     },
 
     getCurrentView(forceNewEvent = false) {
@@ -256,11 +432,13 @@
           stage: getStage(this.state.day),
           stageLabel: data.meta.stages[getStage(this.state.day)],
           day: this.state.day,
-          title: ending.title,
-          body: ending.text,
+          title: tpl(ending.title, this.state),
+          body: tpl(ending.text, this.state),
           result: "",
+          special: null,
           choices: [{ id: "restart", label: "重新开始", disabled: false }],
           stats: this.state.stats,
+          profile: profileMeta(this.state),
           log: this.state.log
         };
       }
@@ -277,8 +455,10 @@
             title: "结局：信号中断",
             body: "没有新的线路，也没有新的冒险。故事在沉默里停住了。",
             result: "",
+            special: null,
             choices: [{ id: "restart", label: "重新开始", disabled: false }],
             stats: this.state.stats,
+            profile: profileMeta(this.state),
             log: this.state.log
           };
         }
@@ -291,11 +471,13 @@
         stageLabel: data.meta.stages[getStage(this.state.day)],
         day: this.state.day,
         eventId: event.id,
-        title: `第${this.state.day}天 · ${event.title}`,
-        body: event.body,
+        title: `第${this.state.day}天 · ${tpl(event.title, this.state)}`,
+        body: tpl(event.body, this.state),
         result: this.state.lastResult || "",
+        special: getSpecialView(this.state, event),
         choices: buildChoiceView(this.state, event),
         stats: this.state.stats,
+        profile: profileMeta(this.state),
         log: this.state.log
       };
     },
@@ -303,29 +485,77 @@
     choose(choiceId) {
       const event = getEventById(this.state.currentEventId);
       if (!event) return this.getCurrentView(true);
+      if (event.special) return this.getCurrentView(false);
 
       const choice = event.choices[choiceId];
       if (!choice || !matchCondition(this.state, choice.condition)) return this.getCurrentView(false);
 
       applyEffects(this.state, choice.effects);
-      let result = choice.result || "";
+      let result = tpl(choice.result || "", this.state);
 
       const outcome = resolveChoiceOutcome(choice);
       if (outcome) {
         if (outcome.effects) applyEffects(this.state, outcome.effects);
-        if (outcome.text) result = `${result} ${outcome.text}`.trim();
+        if (outcome.text) result = `${result} ${tpl(outcome.text, this.state)}`.trim();
       }
 
-      this.state.lastResult = result;
-      this.state.log.unshift(`第${this.state.day}天：${event.title} -> ${choice.label}。${result}`);
-      this.state.log = this.state.log.slice(0, 80);
-
-      this.state.turn += 1;
-      this.state.day += 1;
-      applyPassiveDecay(this.state);
-
-      this.state.currentEventId = null;
+      settleTurn(this.state, event, choice.label, result);
       return this.getCurrentView(true);
+    },
+
+    resolveSpecial(payload) {
+      const event = getEventById(this.state.currentEventId);
+      if (!event || !event.special) return this.getCurrentView(false);
+
+      const special = event.special;
+      let result = "";
+      const timedOut = !!payload?.timeout;
+
+      if (special.type === "skill_check") {
+        if (timedOut) {
+          applyEffects(this.state, special.failEffects);
+          result = `${tpl(special.timeoutText || special.failText, this.state)}（超时）`;
+          settleTurn(this.state, event, "犹豫过久", result);
+          return this.getCurrentView(true);
+        }
+
+        const chance = getSkillCheckChance(this.state, special);
+        const roll = Math.floor(Math.random() * 100) + 1;
+        const success = roll <= chance;
+        if (success) {
+          applyEffects(this.state, special.successEffects);
+          result = `${tpl(special.successText, this.state)}（检定 ${roll}/${chance}）`;
+        } else {
+          applyEffects(this.state, special.failEffects);
+          result = `${tpl(special.failText, this.state)}（检定 ${roll}/${chance}）`;
+        }
+        settleTurn(this.state, event, special.actionLabel || "执行检定", result);
+        return this.getCurrentView(true);
+      }
+
+      if (special.type === "route_pick") {
+        if (timedOut) {
+          applyEffects(this.state, special.failEffects);
+          result = `${tpl(special.timeoutText || special.failText, this.state)}（超时）`;
+          settleTurn(this.state, event, "错过路线窗口", result);
+          return this.getCurrentView(true);
+        }
+
+        const idx = Number(payload?.routeIndex);
+        const safe = this.state.specialContext?.safeRoute ?? -1;
+        const selectedLabel = special.routes?.[idx] || "未知路线";
+        if (idx === safe) {
+          applyEffects(this.state, special.successEffects);
+          result = `${tpl(special.successText, this.state)}（选择: ${selectedLabel}）`;
+        } else {
+          applyEffects(this.state, special.failEffects);
+          result = `${tpl(special.failText, this.state)}（选择: ${selectedLabel}）`;
+        }
+        settleTurn(this.state, event, `路线抉择: ${selectedLabel}`, result);
+        return this.getCurrentView(true);
+      }
+
+      return this.getCurrentView(false);
     },
 
     save() {
@@ -334,11 +564,17 @@
     },
 
     load() {
-      const raw = localStorage.getItem(SAVE_KEY);
+      let raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        for (const legacyKey of LEGACY_SAVE_KEYS) {
+          raw = localStorage.getItem(legacyKey);
+          if (raw) break;
+        }
+      }
       if (!raw) return { ok: false, message: "没有可读取的存档。" };
       try {
         const parsed = JSON.parse(raw);
-        this.state = parsed;
+        this.state = normalizeState(parsed);
         return { ok: true, message: "存档读取成功。" };
       } catch (_) {
         return { ok: false, message: "存档损坏，读取失败。" };

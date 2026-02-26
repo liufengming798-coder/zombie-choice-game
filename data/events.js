@@ -10,6 +10,19 @@ window.GAME_DATA = {
       5: "终局期"
     }
   },
+  profiles: {
+    careers: [
+      { id: "medic", label: "急救员", desc: "擅长处理伤病与感染，特殊检定更稳定。", startBonus: { health: 6, infection: -4, supplies: -2 } },
+      { id: "scout", label: "侦察员", desc: "路线判断更强，探索效率高。", startBonus: { noise: -6, supplies: 4, stress: -2 } },
+      { id: "soldier", label: "退役士兵", desc: "战斗反应快，弹药利用率更高。", startBonus: { ammo: 10, trust: 2, humanity: -2 } },
+      { id: "engineer", label: "维修技师", desc: "擅长庇护所维护与设备修复。", startBonus: { shelter: 10, supplies: 3, stress: -1 } }
+    ],
+    backgrounds: [
+      { id: "family_man", label: "有家可念", desc: "更重视同伴与秩序，信任成长更稳。", startBonus: { trust: 6, humanity: 4, stress: 2 } },
+      { id: "ex_security", label: "前安保人员", desc: "危机应对更果断，但更容易强硬。", startBonus: { ammo: 6, stress: -2, humanity: -4 } },
+      { id: "drifter", label: "流动打工者", desc: "适应力强，前期生存效率更高。", startBonus: { supplies: 8, hunger: -4, trust: -2 } }
+    ]
+  },
   statDefs: [
     { key: "health", label: "健康", min: 0, max: 100 },
     { key: "infection", label: "感染度", min: 0, max: 100, inverse: true },
@@ -134,7 +147,7 @@ window.GAME_DATA = {
       category: "庇护所管理",
       condition: { stageGte: 1, stageLte: 2 },
       title: "发电机熄火",
-      body: "夜里两点，发电机突然停了。我听见屋内呼吸都变快了，外面的走廊开始有拖行声。",
+      body: "夜里两点，发电机突然停了。{name}听见屋内呼吸都变快了，外面的走廊开始有拖行声。",
       choices: [
         {
           label: "拆旧设备抢修",
@@ -318,7 +331,7 @@ window.GAME_DATA = {
       category: "终局",
       condition: { dayGte: 20, stageGte: 5 },
       title: "最后一道防火门",
-      body: "尸群冲进一层后，唯一还能守的只剩防火门。我得决定谁留下拖住时间。",
+      body: "尸群冲进一层后，唯一还能守的只剩防火门。{name}得决定谁留下拖住时间。",
       choices: [
         {
           label: "我留下断后",
@@ -363,7 +376,7 @@ window.GAME_DATA = {
       category: "探索",
       condition: { stageLte: 3 },
       title: "便利店回收",
-      body: "我推开卷帘门，脚下是碎玻璃。收银台后面还有一排没开封的罐头。",
+      body: "{name}推开卷帘门，脚下是碎玻璃。收银台后面还有一排没开封的罐头。",
       choices: [
         { label: "慢慢搜，控制动静", effects: { stats: { supplies: 10, noise: 4, stress: -2 } }, result: "收获不多，但我没把街口惊醒。" },
         { label: "快速扫货", effects: { stats: { supplies: 16, noise: 12, health: -4 } }, result: "我背包更重了，手臂也被铁皮划开。", outcomes: [
@@ -784,6 +797,237 @@ window.GAME_DATA = {
         { label: "继续值夜", effects: { stats: { health: -4, trust: 6, stress: 3 } }, result: "我把刀片扔进垃圾桶，回到走廊。" },
         { label: "交班休息", effects: { stats: { stress: -8, trust: -2, health: 3 } }, result: "我躺下后很久才睡着，但至少睡着了。" }
       ]
+    },
+    {
+      id: "c_medic_triage",
+      weight: 5,
+      cooldown: 6,
+      category: "职业专属",
+      condition: { profile: { career: "medic" }, stageGte: 2 },
+      title: "急救分诊台",
+      body: "{name}把旧办公桌改成临时分诊台，三名伤员同时送到门口。",
+      choices: [
+        { label: "先救呼吸衰竭者", effects: { stats: { trust: 8, infection: -6, stress: 4 } }, result: "我压住呼吸道后，旁边的人群安静了些。" },
+        { label: "按生存概率排序", effects: { stats: { supplies: 6, humanity: -6, stress: -2 } }, result: "效率更高，但有人开始刻意躲开我的眼神。" }
+      ]
+    },
+    {
+      id: "c_medic_quarantine",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "medic" }, stageGte: 3 },
+      title: "隔离病房争议",
+      body: "有人质疑我设立的隔离线，说这像在放弃同伴。",
+      choices: [
+        { label: "坚持隔离并公开流程", effects: { stats: { infection: -8, trust: 4, humanity: 3 } }, result: "流程挂在墙上后，抱怨声少了但没有消失。" },
+        { label: "放宽隔离标准", effects: { stats: { trust: 6, infection: 6, stress: -2 } }, result: "情绪被安抚了，风险也被悄悄放大。" }
+      ]
+    },
+    {
+      id: "c_medic_field_surgery",
+      weight: 4,
+      cooldown: 8,
+      category: "职业专属",
+      condition: { profile: { career: "medic" }, stageGte: 4 },
+      title: "前线截肢",
+      body: "{name}在走廊尽头完成了一次没有麻醉的截肢，锯片的声音让所有人发冷。",
+      choices: [
+        { label: "全程主刀", effects: { stats: { trust: 10, stress: 8, humanity: 2 } }, result: "手术成功，代价是我整夜都在听那段金属摩擦声。" },
+        { label: "让副手执行", effects: { stats: { stress: -3, trust: -4, infection: 4 } }, result: "我保住了体力，但副手的处理并不彻底。" }
+      ]
+    },
+    {
+      id: "c_scout_rooftop",
+      weight: 5,
+      cooldown: 6,
+      category: "职业专属",
+      condition: { profile: { career: "scout" }, stageGte: 2 },
+      title: "高楼观察线",
+      body: "{name}在楼顶架起简易望远镜，发现尸群迁移轨迹出现空档。",
+      choices: [
+        { label: "带小队穿越空档", effects: { stats: { supplies: 10, noise: -8, stress: -3 } }, result: "路线干净得反常，我们抢到一整批食物。" },
+        { label: "先标图不行动", effects: { stats: { shelter: 5, trust: 3 } }, result: "我把路线画在白板上，等待更稳妥的窗口。" }
+      ]
+    },
+    {
+      id: "c_scout_shadow_lane",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "scout" }, stageGte: 3 },
+      title: "阴影通道",
+      body: "我熟悉这片街区的阴影盲区，但一次失误就会全队暴露。",
+      choices: [
+        { label: "夜行静默穿越", effects: { stats: { noise: -10, health: -3, trust: 6 } }, result: "我们几乎贴墙移动，成功绕过主街尸群。" },
+        { label: "白天高速冲刺", effects: { stats: { health: -8, stress: 5, supplies: 8 } }, result: "效率更高，但所有人都被榨干了体力。" }
+      ]
+    },
+    {
+      id: "c_scout_lost_signal",
+      weight: 4,
+      cooldown: 8,
+      category: "职业专属",
+      condition: { profile: { career: "scout" }, stageGte: 4 },
+      title: "失联追踪",
+      body: "一支侦察小组失联，只留下断续脚印。{name}必须判断追踪深度。",
+      choices: [
+        { label: "深入追踪救回队员", effects: { stats: { trust: 9, health: -6, stress: 4 } }, result: "我把两人带回来了，第三人只剩下名牌。" },
+        { label: "止损撤回据点", effects: { stats: { trust: -8, shelter: 4, stress: -1 } }, result: "我守住了整体战力，也背上了放弃同伴的名声。" }
+      ]
+    },
+    {
+      id: "c_soldier_fireline",
+      weight: 5,
+      cooldown: 6,
+      category: "职业专属",
+      condition: { profile: { career: "soldier" }, stageGte: 2 },
+      title: "压制火线",
+      body: "路障被突破后，所有人都看向我。旧军训记忆几乎是本能地涌上来。",
+      choices: [
+        { label: "组织火力梯次", effects: { stats: { ammo: -10, trust: 8, shelter: 6 } }, result: "火线稳住了，尸群被卡在十字路口外。" },
+        { label: "单人突击清口", effects: { stats: { health: -10, ammo: -6, stress: 2 } }, result: "我冲得太深，回来时护甲几乎报废。" }
+      ]
+    },
+    {
+      id: "c_soldier_chain_command",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "soldier" }, stageGte: 3 },
+      title: "指挥链冲突",
+      body: "有人不服我的战术安排，想带人单独行动抢补给。",
+      choices: [
+        { label: "强制执行命令", effects: { stats: { trust: 6, humanity: -6, stress: -2 } }, result: "纪律回来了，关系却裂开一道口子。" },
+        { label: "允许分队行动", effects: { stats: { trust: -6, supplies: 6, noise: 8 } }, result: "他们确实带回了物资，也把尾巴带回了据点。" }
+      ]
+    },
+    {
+      id: "c_soldier_cover_withdraw",
+      weight: 4,
+      cooldown: 8,
+      category: "职业专属",
+      condition: { profile: { career: "soldier" }, stageGte: 4 },
+      title: "掩护撤退",
+      body: "{name}要在十秒内决定是掩护平民撤离，还是保全核心弹药箱。",
+      choices: [
+        { label: "优先掩护平民", effects: { stats: { humanity: 8, trust: 8, ammo: -10 } }, result: "最后一辆推车过桥时，我已经听不清自己的耳鸣。" },
+        { label: "优先保全弹药", effects: { stats: { ammo: 10, trust: -8, humanity: -8 } }, result: "战力保住了，很多人再也没回来。" }
+      ]
+    },
+    {
+      id: "c_engineer_grid_patch",
+      weight: 5,
+      cooldown: 6,
+      category: "职业专属",
+      condition: { profile: { career: "engineer" }, stageGte: 2 },
+      title: "临时电网补丁",
+      body: "{name}在配电间发现可用线路，修好后据点夜间可恢复半层照明。",
+      choices: [
+        { label: "立即并网", effects: { stats: { shelter: 10, noise: 8, stress: -3 } }, result: "灯亮起来时，整个大厅都松了一口气。" },
+        { label: "先降噪改造", effects: { stats: { shelter: 6, supplies: -6, noise: -6 } }, result: "我花了更久时间，换来更安静的夜晚。" }
+      ]
+    },
+    {
+      id: "c_engineer_trap_line",
+      weight: 4,
+      cooldown: 7,
+      category: "职业专属",
+      condition: { profile: { career: "engineer" }, stageGte: 3 },
+      title: "机械陷阱线",
+      body: "仓库区可以布置机械绊索陷阱，但稍有失误会伤到自己人。",
+      choices: [
+        { label: "完整布置陷阱", effects: { stats: { shelter: 12, supplies: -8, trust: 4 } }, result: "陷阱线成形后，夜里撞门声少了很多。" },
+        { label: "只设警戒不设杀伤", effects: { stats: { shelter: 5, humanity: 4, stress: 2 } }, result: "防御弱一些，但同伴对我更放心。" }
+      ]
+    },
+    {
+      id: "c_engineer_bridge_fix",
+      weight: 4,
+      cooldown: 8,
+      category: "职业专属",
+      condition: { profile: { career: "engineer" }, stageGte: 4, flagsAll: ["knowsEvacPoint"] },
+      title: "桥面抢修",
+      body: "撤离桥面裂开一道缝。{name}可以抢修，也可以强行让队伍冒险通过。",
+      choices: [
+        { label: "现场抢修", effects: { stats: { shelter: 8, supplies: -10, stress: 5 }, flagsSet: { bridgeOpen: true } }, result: "我把钢缆打进裂缝，桥面总算能过人。" },
+        { label: "冒险快速通过", effects: { stats: { trust: -6, health: -6, stress: 3 }, flagsSet: { bridgeOpen: true } }, result: "我们冲了过去，但有两人脚踝受伤。" }
+      ]
+    },
+    {
+      id: "s_blood_lab",
+      weight: 4,
+      cooldown: 8,
+      category: "特殊事件",
+      condition: { stageGte: 3, stats: { infection: { gte: 28 } } },
+      title: "临时血样实验",
+      body: "废弃检验室还能通电十分钟。{name}需要亲手完成一次风险检定，决定是否用试剂压住感染。",
+      special: {
+        type: "skill_check",
+        title: "感染抑制检定",
+        description: "快速配置试剂并自行注射，动作越稳越可能成功。",
+        stat: "stress",
+        statLabel: "心理压力",
+        baseChance: 54,
+        careerBoost: "medic",
+        timerSec: 12,
+        actionLabel: "开始注射检定",
+        successEffects: { stats: { infection: -16, stress: -4, health: 2 } },
+        failEffects: { stats: { infection: 10, health: -6, stress: 8 }, flagsSet: { woundOpen: true } },
+        successText: "试剂进入静脉后，眩晕慢慢退了。至少今晚还能握稳武器。",
+        failText: "针头抖了一下，药液和血混在一起。寒意从脊背一直窜到后颈。",
+        timeoutText: "我犹豫太久，电源跳闸，试剂直接报废。"
+      },
+      choices: []
+    },
+    {
+      id: "s_signal_chase",
+      weight: 4,
+      cooldown: 8,
+      category: "特殊事件",
+      condition: { stageGte: 4, flagsAll: ["knowsEvacPoint"] },
+      title: "信号追踪窗口",
+      body: "一次短波脉冲暴露了临时安全通道。{name}只有一次选线机会，选错就会撞上游荡尸群。",
+      special: {
+        type: "route_pick",
+        title: "三选一路线博弈",
+        description: "地图只显示旧线路，你需要押注哪一条还没被尸群封死。",
+        routes: ["下水道维护线", "高架阴影带", "商场中庭通道"],
+        timerSec: 10,
+        actionLabel: "确认路线",
+        successEffects: { stats: { supplies: 10, stress: -6, trust: 6, noise: -4 } },
+        failEffects: { stats: { health: -10, ammo: -8, noise: 12, stress: 8 } },
+        successText: "路线赌中了，队伍在天亮前完整穿过封锁区。",
+        failText: "错误路线把我们带进了死角，只能硬拼突围。",
+        timeoutText: "我迟迟没下命令，窗口关闭，尸群先一步合拢。"
+      },
+      choices: []
+    },
+    {
+      id: "s_last_transmitter",
+      weight: 3,
+      cooldown: 9,
+      category: "特殊事件",
+      condition: { stageGte: 5, flagsAll: ["radioFixed"] },
+      title: "最后一台发报机",
+      body: "楼顶发报机电容烧到发红。{name}要在倒计时里手动稳频，否则整段求救信号会废掉。",
+      special: {
+        type: "skill_check",
+        title: "稳频检定",
+        description: "高温、噪声和时间压力下完成频段校准。",
+        stat: "shelter",
+        statLabel: "庇护所工程能力",
+        baseChance: 50,
+        careerBoost: "engineer",
+        timerSec: 9,
+        actionLabel: "执行稳频",
+        successEffects: { stats: { trust: 10, stress: -6 }, flagsSet: { knowsEvacPoint: true } },
+        failEffects: { stats: { noise: 10, stress: 8, supplies: -8 } },
+        successText: "频段锁住了，新的撤离口令被完整记录下来。",
+        failText: "电容炸裂，焦味弥漫，关键窗口在噪声中错过。",
+        timeoutText: "温度飙升后我没来得及下手，发报机在火花里熄灭。"
+      },
+      choices: []
     }
   ]
 };

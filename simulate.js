@@ -186,6 +186,25 @@ function runOne(maxTurns = 80) {
     if (!event) return { ending: 'none', day: state.day, chosenEvents, seenCounts: state.seenCounts };
     recordSeen(state, event);
     chosenEvents.push(event.id);
+
+    if (event.special) {
+      if (event.special.type === 'skill_check') {
+        const chance = 55;
+        const success = Math.random() * 100 < chance;
+        applyEffects(state, success ? event.special.successEffects : event.special.failEffects);
+      } else if (event.special.type === 'route_pick') {
+        const routes = event.special.routes || [];
+        const pick = Math.floor(Math.random() * Math.max(1, routes.length));
+        const safe = Math.floor(Math.random() * Math.max(1, routes.length));
+        applyEffects(state, pick === safe ? event.special.successEffects : event.special.failEffects);
+      }
+      state.turn += 1;
+      state.day += 1;
+      applyPassiveDecay(state);
+      state.currentEventId = null;
+      continue;
+    }
+
     const choices = event.choices.filter(c => matchCondition(state, c.condition));
     const choice = choices[Math.floor(Math.random() * choices.length)];
     applyEffects(state, choice.effects);

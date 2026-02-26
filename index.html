@@ -7,12 +7,14 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="bg-shape"></div>
+  <div class="fog"></div>
+  <div class="grain"></div>
+
   <main class="app">
     <header class="topbar">
       <div>
         <h1>尸潮余温</h1>
-        <p>男性第一人称 · 随机分支叙事 · 多结局</p>
+        <p id="hook-text">男性第一人称 · 随机分支叙事 · 多结局</p>
       </div>
       <div class="top-actions">
         <button id="btn-save" class="btn ghost">保存</button>
@@ -21,28 +23,62 @@
       </div>
     </header>
 
+    <section class="identity-bar">
+      <span id="id-name" class="chip">姓名: 未命名</span>
+      <span id="id-career" class="chip">职业: -</span>
+      <span id="id-background" class="chip">身份: -</span>
+      <span id="stage-tag" class="chip stage"></span>
+    </section>
+
     <section class="layout">
       <article class="story-card">
-        <div id="stage-tag" class="stage-tag"></div>
         <h2 id="event-title"></h2>
         <p id="event-body"></p>
         <p id="event-result" class="result"></p>
+
+        <div id="special-panel" class="special-panel hidden"></div>
         <div id="choices" class="choices"></div>
       </article>
 
       <aside class="side-card">
         <section>
-          <h3>状态</h3>
+          <h3>状态面板</h3>
           <div id="stats" class="stats"></div>
         </section>
 
         <section class="log-wrap">
-          <button id="toggle-log" class="log-toggle">日志 ▾</button>
+          <button id="toggle-log" class="log-toggle">行动日志 ▾</button>
           <div id="log" class="log"></div>
         </section>
       </aside>
     </section>
   </main>
+
+  <section id="setup-screen" class="setup-screen">
+    <div class="setup-card">
+      <h2>建立你的生存档案</h2>
+      <p>姓名会进入后续叙事；职业与身份会改变开局资源、风险偏好和特殊事件判定。</p>
+
+      <label class="field">
+        <span>姓名</span>
+        <input id="player-name" type="text" maxlength="12" placeholder="例如：林川" />
+      </label>
+
+      <div class="field-grid">
+        <label class="field">
+          <span>职业</span>
+          <select id="player-career"></select>
+        </label>
+        <label class="field">
+          <span>身份</span>
+          <select id="player-background"></select>
+        </label>
+      </div>
+
+      <div id="profile-preview" class="preview"></div>
+      <button id="btn-start" class="btn start">进入第1天</button>
+    </div>
+  </section>
 
   <script src="data/events.js"></script>
   <script src="engine.js"></script>
