@@ -24,14 +24,14 @@ window.GAME_DATA = {
       { id: "delivery_king", label: "外卖单王", desc: "熟悉城市路径和补给点，体力与效率都不错。", startBonus: { supplies: 7, health: 4, hunger: -3 } }
     ],
     backgrounds: [
-      { id: "family_man", label: "有家可念", desc: "更重视同伴与秩序，信任成长更稳。", startBonus: { trust: 6, humanity: 4, stress: 2 } },
-      { id: "ex_security", label: "前安保人员", desc: "危机应对更果断，但更容易强硬。", startBonus: { ammo: 6, stress: -2, humanity: -4 } },
-      { id: "drifter", label: "流动打工者", desc: "适应力强，前期生存效率更高。", startBonus: { supplies: 8, hunger: -4, trust: -2 } },
-      { id: "divorce_lawyer", label: "离婚律师", desc: "擅长谈判和切割利益关系。", startBonus: { trust: 3, humanity: -2, supplies: 5 } },
-      { id: "night_shift", label: "夜班常驻", desc: "昼夜颠倒习惯让你在守夜中更稳定。", startBonus: { stress: -4, health: 3, hunger: 2 } },
-      { id: "lottery_addict", label: "老彩民", desc: "喜欢赌概率，偶尔爆赚偶尔血亏。", startBonus: { supplies: 4, stress: -1, trust: -1 } },
-      { id: "ex_idol_assistant", label: "前偶像助理", desc: "控场能力强，能协调多人节奏。", startBonus: { trust: 5, shelter: 3, stress: -2 } },
-      { id: "urban_runner", label: "城市夜跑者", desc: "耐力好，撤离与搬运效率更高。", startBonus: { health: 5, noise: -2, supplies: 2 } }
+      { id: "family_man", label: "后勤照料者", desc: "负责伤员和口粮登记，强调照料与秩序。", careers: ["medic", "engineer", "delivery_king", "poet", "standup"], startBonus: { trust: 6, humanity: 4, stress: 2 } },
+      { id: "ex_security", label: "警戒队长", desc: "负责防线和巡逻节奏，决策偏果断。", careers: ["soldier", "scout", "magician", "delivery_king"], startBonus: { ammo: 6, stress: -2, humanity: -4 } },
+      { id: "drifter", label: "外勤跑线人", desc: "负责摸点与送货，适应力强但稳定性一般。", careers: ["scout", "delivery_king", "pet_streamer", "astrologer"], startBonus: { supplies: 8, hunger: -4, trust: -2 } },
+      { id: "divorce_lawyer", label: "谈判裁决官", desc: "负责资源分配谈判和冲突裁决。", careers: ["standup", "astrologer", "poet", "magician"], startBonus: { trust: 3, humanity: -2, supplies: 5 } },
+      { id: "night_shift", label: "夜巡守望者", desc: "负责夜间值守和静默通行。", careers: ["soldier", "engineer", "scout", "medic"], startBonus: { stress: -4, health: 3, hunger: 2 } },
+      { id: "lottery_addict", label: "风险押注手", desc: "负责高风险决策与概率型任务。", careers: ["astrologer", "magician", "pet_streamer", "standup"], startBonus: { supplies: 4, stress: -1, trust: -1 } },
+      { id: "ex_idol_assistant", label: "秩序控场员", desc: "负责人群动线和队伍沟通。", careers: ["standup", "pet_streamer", "delivery_king", "engineer"], startBonus: { trust: 5, shelter: 3, stress: -2 } },
+      { id: "urban_runner", label: "快反搬运员", desc: "负责快速转移与突发撤离。", careers: ["scout", "delivery_king", "soldier", "medic"], startBonus: { health: 5, noise: -2, supplies: 2 } }
     ]
   },
   statDefs: [

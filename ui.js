@@ -155,7 +155,7 @@
   function renderIdentity(profile) {
     identityNameEl.textContent = `姓名: ${profile?.name || "未命名"}`;
     identityCareerEl.textContent = `职业: ${profile?.careerLabel || "-"}`;
-    identityBgEl.textContent = `身份: ${profile?.backgroundLabel || "-"}`;
+    identityBgEl.textContent = `末日角色: ${profile?.backgroundLabel || "-"}`;
   }
 
   function render(view) {
@@ -174,7 +174,6 @@
   function fillProfileSelectors() {
     const profiles = game.getProfileOptions();
     careerSelect.innerHTML = "";
-    bgSelect.innerHTML = "";
 
     profiles.careers.forEach(x => {
       const opt = document.createElement("option");
@@ -182,27 +181,38 @@
       opt.textContent = `${x.label}`;
       careerSelect.appendChild(opt);
     });
+    renderBackgroundOptions(careerSelect.value, null);
+  }
 
-    profiles.backgrounds.forEach(x => {
+  function renderBackgroundOptions(careerId, preferredBackground) {
+    const profiles = game.getProfileOptions();
+    const all = profiles.backgrounds || [];
+    const options = all.filter(bg => !bg.careers || bg.careers.includes(careerId));
+    const finalOptions = options.length ? options : all;
+    const keep = preferredBackground && finalOptions.some(x => x.id === preferredBackground);
+
+    bgSelect.innerHTML = "";
+    finalOptions.forEach(x => {
       const opt = document.createElement("option");
       opt.value = x.id;
       opt.textContent = `${x.label}`;
       bgSelect.appendChild(opt);
     });
+    if (keep) bgSelect.value = preferredBackground;
   }
 
   function updateProfilePreview() {
     const profiles = game.getProfileOptions();
     const c = profiles.careers.find(x => x.id === careerSelect.value) || profiles.careers[0];
     const b = profiles.backgrounds.find(x => x.id === bgSelect.value) || profiles.backgrounds[0];
-    previewEl.textContent = `职业特性: ${c.desc} | 身份特性: ${b.desc}`;
+    previewEl.textContent = `末日前职业: ${c.label}（${c.desc}）\n末日角色: ${b.label}（${b.desc}）`;
   }
 
   function openSetup(seedProfile) {
     setupEl.classList.remove("hidden");
     if (seedProfile?.name) nameInput.value = seedProfile.name;
     if (seedProfile?.career) careerSelect.value = seedProfile.career;
-    if (seedProfile?.background) bgSelect.value = seedProfile.background;
+    renderBackgroundOptions(careerSelect.value, seedProfile?.background || null);
     updateProfilePreview();
   }
 
@@ -240,7 +250,10 @@
     logToggleBtn.textContent = logEl.classList.contains("collapsed") ? "行动日志 ▸" : "行动日志 ▾";
   });
 
-  careerSelect.addEventListener("change", updateProfilePreview);
+  careerSelect.addEventListener("change", () => {
+    renderBackgroundOptions(careerSelect.value, bgSelect.value);
+    updateProfilePreview();
+  });
   bgSelect.addEventListener("change", updateProfilePreview);
   startBtn.addEventListener("click", startRun);
 

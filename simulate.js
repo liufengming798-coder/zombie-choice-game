@@ -65,9 +65,11 @@ function weightedPick(items, getWeight) {
 
 function createState() {
   const careers = (data.profiles?.careers || []).map(c => c.id);
-  const backgrounds = (data.profiles?.backgrounds || []).map(b => b.id);
   const career = careers[Math.floor(Math.random() * Math.max(1, careers.length))] || 'medic';
-  const background = backgrounds[Math.floor(Math.random() * Math.max(1, backgrounds.length))] || 'family_man';
+  const allBackgrounds = (data.profiles?.backgrounds || []);
+  const allowed = allBackgrounds.filter(b => !b.careers || b.careers.includes(career));
+  const backgroundPool = allowed.length ? allowed : allBackgrounds;
+  const background = (backgroundPool[Math.floor(Math.random() * Math.max(1, backgroundPool.length))] || { id: 'family_man' }).id;
   const state = {
     ...deepClone(data.initialState),
     profile: { name: 'Sim', career, background },

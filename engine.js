@@ -88,6 +88,12 @@
     return group.find(x => x.id === id) || group[0];
   }
 
+  function getAllowedBackgrounds(careerId) {
+    const all = data.profiles.backgrounds || [];
+    const filtered = all.filter(bg => !bg.careers || bg.careers.includes(careerId));
+    return filtered.length ? filtered : all;
+  }
+
   function applyProfileBonus(state) {
     const c = getProfileDef("career", state.profile.career);
     const b = getProfileDef("background", state.profile.background);
@@ -108,13 +114,19 @@
   function createStore(profileInput) {
     const base = deepClone(data.initialState);
     const defaultCareer = data.profiles.careers[0].id;
-    const defaultBackground = data.profiles.backgrounds[0].id;
+    const selectedCareer = profileInput?.career || defaultCareer;
+    const allowedForCareer = getAllowedBackgrounds(selectedCareer);
+    const defaultBackground = allowedForCareer[0]?.id || data.profiles.backgrounds[0].id;
+    const requestedBackground = profileInput?.background || defaultBackground;
+    const validBackground = allowedForCareer.some(x => x.id === requestedBackground)
+      ? requestedBackground
+      : defaultBackground;
     const profile = {
       name: (profileInput?.name || "无名")
         .replace(/\s+/g, "")
         .slice(0, 12) || "无名",
-      career: profileInput?.career || defaultCareer,
-      background: profileInput?.background || defaultBackground
+      career: selectedCareer,
+      background: validBackground
     };
 
     const state = {
