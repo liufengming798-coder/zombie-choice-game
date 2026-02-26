@@ -351,8 +351,9 @@
   function buildChoiceView(state, event) {
     if (event.special) return [];
 
-    return event.choices.map((choice, idx) => {
+    return event.choices.flatMap((choice, idx) => {
       const ok = matchCondition(state, choice.condition);
+      if (!ok && choice.hideIfLocked) return [];
       return {
         id: idx,
         label: tpl(choice.label, state),

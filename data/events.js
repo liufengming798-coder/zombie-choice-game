@@ -436,6 +436,7 @@ window.GAME_DATA = {
       body: "{name}推开卷帘门，脚下是碎玻璃。收银台后面还有一排没开封的罐头。",
       choices: [
         { label: "慢慢搜，控制动静", effects: { stats: { supplies: 10, noise: 4, stress: -2 } }, result: "收获不多，但我没把街口惊醒。" },
+        { label: "【资源搜刮者】按货架动线高效打包", hideIfLocked: true, condition: { profile: { background: "role_scavenger" } }, effects: { stats: { supplies: 16, noise: 3, stress: -3 } }, result: "我按进货动线快速打包，几乎没留下多余声响。" },
         { label: "快速扫货", effects: { stats: { supplies: 16, noise: 12, health: -4 } }, result: "我背包更重了，手臂也被铁皮划开。", outcomes: [
           { weight: 3, text: "伤口不深。", effects: { stats: { infection: 2 } } },
           { weight: 1, text: "污血沾进伤口，我心里一沉。", effects: { stats: { infection: 8 }, flagsSet: { woundOpen: true } } }
@@ -452,6 +453,7 @@ window.GAME_DATA = {
       body: "我爬上居民楼屋顶，风很冷，但能看清三个街区的活动。",
       choices: [
         { label: "标记安全路线", effects: { stats: { stress: -5, noise: -3, supplies: -3 } }, result: "我画出一条绕开尸群密集区的线路。" },
+        { label: "【潜行渗透者】布置静默切入点", hideIfLocked: true, condition: { profile: { background: "role_infiltrator" } }, effects: { stats: { noise: -10, supplies: 4, stress: -2 } }, result: "我把绳点和盲角都标好，后续潜入成本明显下降。" },
         { label: "顺便拆太阳能板", effects: { stats: { shelter: 8, noise: 8, health: -2 } }, result: "我扛回两块板，肩膀被金属边蹭出血痕。" }
       ]
     },
@@ -465,6 +467,7 @@ window.GAME_DATA = {
       body: "地下停车场里还有一台能启动的面包车，只是排气声像喇叭一样响。",
       choices: [
         { label: "开车转运物资", effects: { stats: { supplies: 12, noise: 18, stress: -4 } }, result: "转运效率暴涨，附近街区也开始躁动。" },
+        { label: "【运输后勤官】按编号分车次转运", hideIfLocked: true, condition: { profile: { background: "role_logistics" } }, effects: { stats: { supplies: 14, noise: 8, trust: 4 } }, result: "我按车次和重量分批，损耗变小，队伍也更服气。" },
         { label: "拆电瓶和工具", effects: { stats: { shelter: 6, supplies: 4, noise: 4 } }, result: "我放弃了机动性，换回更稳妥的维修材料。" }
       ]
     },
@@ -521,6 +524,7 @@ window.GAME_DATA = {
           { weight: 1, text: "指节破皮，可能沾了污血。", effects: { stats: { infection: 6 }, flagsSet: { woundOpen: true } } },
           { weight: 3, text: "只是擦伤。", effects: { stats: { infection: 1 } } }
         ] },
+        { label: "【防线守卫者】架盾卡位反制", hideIfLocked: true, condition: { profile: { background: "role_defender" } }, effects: { stats: { ammo: -4, health: -2, trust: 5, noise: 4 } }, result: "我利用楼梯拐角卡位，代价更小地把它压死在台阶边。" },
         { label: "开枪压制", effects: { stats: { ammo: -8, noise: 14, stress: -2 } }, result: "战斗结束很快，但枪声让走廊回音不断。" }
       ]
     },
@@ -587,6 +591,7 @@ window.GAME_DATA = {
       body: "旧地铁口有人摆摊，价码每天都变。今天他们想要弹药换药品。",
       choices: [
         { label: "弹药换药", effects: { stats: { ammo: -12, infection: -8, supplies: 8 } }, result: "我背回了药箱，枪却轻了很多。" },
+        { label: "【交易谈判者】签互保交换协议", hideIfLocked: true, condition: { profile: { background: "role_negotiator" } }, effects: { stats: { supplies: 10, trust: 6, ammo: -6 } }, result: "我把临时互保条款写在纸板上，换来了更体面的价格。" },
         { label: "强压价格", effects: { stats: { trust: -4, supplies: 4, noise: 6 } }, result: "我省下一点物资，也得罪了看场子的人。" }
       ]
     },
@@ -707,6 +712,7 @@ window.GAME_DATA = {
       body: "凌晨交班时，两个守夜员互相指责偷懒，情绪快压不住。",
       choices: [
         { label: "我顶上夜班让他们冷静", effects: { stats: { health: -4, trust: 8, stress: 4 } }, result: "我整夜没合眼，至少他们第二天还能一起干活。" },
+        { label: "【据点指挥官】重排轮值并公开解释", hideIfLocked: true, condition: { profile: { background: "role_leader" } }, effects: { stats: { trust: 10, stress: -3, shelter: 4 } }, result: "我把轮值逻辑写到白板上，争吵终于转成了执行问题。" },
         { label: "按规章各罚一天口粮", effects: { stats: { trust: -4, shelter: 4, hunger: 4 } }, result: "纪律是立住了，私下怨气也累积了。" }
       ]
     },
@@ -773,6 +779,7 @@ window.GAME_DATA = {
       body: "滤芯寿命到了，水里开始有金属味。",
       choices: [
         { label: "更换滤芯", effects: { stats: { supplies: -6, health: 4, infection: -4 } }, result: "水恢复了清澈，肠胃问题明显减少。" },
+        { label: "【工事维护者】改造双滤芯旁路", hideIfLocked: true, condition: { profile: { background: "role_engineer" } }, effects: { stats: { supplies: -4, infection: -8, shelter: 5 } }, result: "我临时焊了旁路，净水效率稳定了两倍。" },
         { label: "煮沸凑合", effects: { stats: { supplies: -2, stress: 3, infection: 3 } }, result: "暂时还能喝，但风险被悄悄推高。" }
       ]
     },
@@ -799,6 +806,7 @@ window.GAME_DATA = {
       body: "药品账册出现三处不一致，有人可能在私藏。",
       choices: [
         { label: "公开盘点并追责", effects: { stats: { trust: 6, stress: 4, humanity: 2 } }, result: "我把数据贴在墙上，至少数字开始透明。" },
+        { label: "【医疗支援者】按伤情重建用药优先级", hideIfLocked: true, condition: { profile: { background: "role_medic" } }, effects: { stats: { infection: -8, trust: 5, supplies: -2 } }, result: "我按重症优先重排药品流向，感染曲线开始下降。" },
         { label: "先压下不查", effects: { stats: { trust: -6, stress: -2, infection: 4 } }, result: "表面平静了，药品流向却更难追。" }
       ]
     },
