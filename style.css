@@ -279,6 +279,54 @@ body {
   font-size: 12px;
 }
 
+.event-hero {
+  margin-top: 12px;
+  border: 1px solid #3f556b;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.event-hero img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.88) contrast(1.04) brightness(0.85);
+}
+
+.event-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5, 10, 16, 0.1), rgba(5, 10, 16, 0.62));
+  pointer-events: none;
+}
+
+.event-hero-meta {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  z-index: 2;
+}
+
+.hero-chip {
+  border: 1px solid #577089;
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 3px 8px;
+  color: #d4e7f7;
+  background: rgba(13, 24, 35, 0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 kbd {
   border: 1px solid #5a7287;
   border-bottom-width: 2px;
@@ -312,26 +360,13 @@ kbd {
 }
 
 .tarot-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-min, 200px), 1fr));
   gap: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 8px;
-  scroll-snap-type: x mandatory;
-}
-
-.tarot-row::-webkit-scrollbar {
-  height: 8px;
-}
-
-.tarot-row::-webkit-scrollbar-thumb {
-  background: #3f576f;
-  border-radius: 999px;
 }
 
 .choice-card {
-  flex: 0 0 220px;
-  min-height: 280px;
+  min-height: 260px;
   border: 1px solid #4b6177;
   background:
     radial-gradient(130px 90px at 80% 10%, rgba(255, 184, 112, 0.14), transparent 70%),
@@ -344,7 +379,6 @@ kbd {
   transition: 170ms ease;
   user-select: none;
   cursor: pointer;
-  scroll-snap-align: start;
   box-shadow: inset 0 0 0 1px rgba(205, 176, 118, 0.1);
 }
 
@@ -365,8 +399,25 @@ kbd {
   letter-spacing: 1px;
 }
 
+.tarot-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .tarot-bottom {
   text-align: right;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.npc-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #cadff1;
 }
 
 .choice-label {
@@ -392,6 +443,7 @@ kbd {
 
 .impact-pill.pos { border-color: #4f8e68; color: #cdf5da; }
 .impact-pill.neg { border-color: #915050; color: #ffd9d9; }
+.impact-pill.npc { border-style: dashed; }
 
 .control-panel {
   padding: 14px;
@@ -427,6 +479,12 @@ h3 {
   margin-bottom: 6px;
 }
 
+.stat-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .bar {
   height: 8px;
   border-radius: 999px;
@@ -451,6 +509,41 @@ h3 {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.npc-wrap {
+  border: 1px solid #3a4e62;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.npc-relations {
+  display: grid;
+  gap: 8px;
+}
+
+.npc-item {
+  border: 1px solid #3f556b;
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.npc-item.ally { border-color: #4f8e68; }
+.npc-item.enemy { border-color: #915050; }
+
+.npc-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #d4e1ee;
+  margin-bottom: 4px;
+}
+
+.npc-role {
+  font-size: 11px;
+  color: #b8c8d6;
+}
+
 .memory {
   display: grid;
   gap: 6px;
@@ -461,6 +554,15 @@ h3 {
   color: #cedbe6;
   border-bottom: 1px dashed #334a61;
   padding-bottom: 6px;
+}
+
+.mini-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  opacity: 0.9;
+  vertical-align: middle;
+  filter: invert(90%) sepia(12%) saturate(315%) hue-rotate(172deg) brightness(98%) contrast(95%);
 }
 
 .log-toggle {
@@ -581,5 +683,6 @@ h3 {
 @media (max-width: 760px) {
   .scene-header h2 { font-size: 24px; }
   .top-actions { flex-wrap: wrap; }
-  .choice-card { flex-basis: 190px; min-height: 260px; }
+  .tarot-row { grid-template-columns: 1fr; --card-min: 0px; }
+  .choice-card { min-height: 220px; }
 }

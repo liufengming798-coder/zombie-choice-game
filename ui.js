@@ -5,6 +5,8 @@
   const titleEl = document.getElementById("event-title");
   const bodyEl = document.getElementById("event-body");
   const resultEl = document.getElementById("event-result");
+  const eventHeroImgEl = document.getElementById("event-hero-img");
+  const eventHeroMetaEl = document.getElementById("event-hero-meta");
   const stageEl = document.getElementById("stage-tag");
   const categoryEl = document.getElementById("event-category");
   const choicesEl = document.getElementById("choices");
@@ -27,12 +29,43 @@
 
   const identityNameEl = document.getElementById("id-name");
   const identityStatusEl = document.getElementById("id-status");
+  const identityBondEl = document.getElementById("id-bond");
+  const identityRiskEl = document.getElementById("id-risk");
+  const npcRelationsEl = document.getElementById("npc-relations");
 
   const canvas = document.getElementById("skyline-canvas");
   const sceneStageEl = document.getElementById("scene-stage");
   const sceneLabelEl = document.getElementById("scene-label");
 
   const statLabelMap = Object.fromEntries((data.statDefs || []).map(s => [s.key, s.label]));
+  const statIconMap = {
+    health: "assets/icons/heart-pulse.svg",
+    infection: "assets/icons/flame.svg",
+    hunger: "assets/icons/warning-triangle.svg",
+    supplies: "assets/icons/route.svg",
+    stamina: "assets/icons/swords.svg",
+    stress: "assets/icons/warning-triangle.svg",
+    trust: "assets/icons/users.svg",
+    shelter: "assets/icons/shield.svg"
+  };
+  const categoryIconMap = {
+    崩溃初期: "assets/icons/flame.svg",
+    封锁裂解: "assets/icons/lock-open.svg",
+    组织重构: "assets/icons/users.svg",
+    高压消耗: "assets/icons/swords.svg",
+    长期求生: "assets/icons/shield.svg",
+    终局: "assets/icons/warning-triangle.svg"
+  };
+  const sceneImageMap = {
+    combat: "assets/images/shanghai-night-cc0.jpg",
+    moral: "assets/images/shanghai-skyline-cc0.jpg",
+    bond: "assets/images/shanghai-skyline-cc0.jpg",
+    scavenge: "assets/images/shanghai-night-cc0.jpg",
+    shelter: "assets/images/shanghai-skyline-cc0.jpg",
+    zombie: "assets/images/shanghai-night-cc0.jpg",
+    signal: "assets/images/shanghai-skyline-cc0.jpg",
+    neutral: "assets/images/shanghai-skyline-cc0.jpg"
+  };
 
   let latestView = null;
   let audioCtx = null;
@@ -90,9 +123,10 @@
       const value = stats[def.key] ?? 0;
       const item = document.createElement("div");
       item.className = "stat-item";
+      const icon = statIconMap[def.key] || "assets/icons/route.svg";
       item.innerHTML = `
         <div class="stat-head">
-          <span>${def.label}</span>
+          <span class="stat-title"><img src="${icon}" alt="" class="mini-icon" />${def.label}</span>
           <span>${Math.round(value)}</span>
         </div>
         <div class="bar"><div class="fill ${def.inverse ? "inverse" : ""}" style="width:${statPercent(def, value)}%"></div></div>
@@ -101,9 +135,9 @@
     });
   }
 
-  function renderMemory(log) {
+  function renderMemory(entries) {
     memoryEl.innerHTML = "";
-    const picks = (log || []).slice(0, 6);
+    const picks = (entries || []).slice(0, 6);
     picks.forEach((line, idx) => {
       const item = document.createElement("div");
       item.className = "memory-item";
@@ -116,6 +150,23 @@
       item.textContent = "暂无关键轨迹";
       memoryEl.appendChild(item);
     }
+  }
+
+  function renderNpcRelations(npcs) {
+    npcRelationsEl.innerHTML = "";
+    (npcs || []).forEach(npc => {
+      const item = document.createElement("div");
+      const stanceClass = npc.value >= 70 ? "ally" : npc.value <= 30 ? "enemy" : "neutral";
+      item.className = `npc-item ${stanceClass}`;
+      item.innerHTML = `
+        <div class=\"npc-head\">
+          <span>${npc.name}</span>
+          <span>${npc.value}</span>
+        </div>
+        <div class=\"npc-role\">${npc.role} · ${npc.stance}</div>
+      `;
+      npcRelationsEl.appendChild(item);
+    });
   }
 
   function renderLog(log) {
@@ -131,6 +182,8 @@
   function renderIdentity(profile) {
     identityNameEl.textContent = `身份: ${profile?.name || "未命名"}（${profile?.citizenTag || "市民"}）`;
     identityStatusEl.textContent = `状态: ${profile?.statusLabel || "-"}`;
+    identityBondEl.textContent = `盟友: ${profile?.topBond || "-"}`;
+    identityRiskEl.textContent = `紧张关系: ${profile?.lowBond || "-"}`;
   }
 
   function renderWorld(view) {
@@ -149,14 +202,34 @@
     sceneLabelEl.textContent = String(theme).toUpperCase();
   }
 
+  function renderEventHero(view) {
+    const theme = view.sceneTheme || "neutral";
+    eventHeroImgEl.src = sceneImageMap[theme] || sceneImageMap.neutral;
+    eventHeroMetaEl.innerHTML = "";
+
+    const categoryIcon = document.createElement("span");
+    categoryIcon.className = "hero-chip";
+    categoryIcon.innerHTML = `<img src="${categoryIconMap[view.category] || "assets/icons/map-pin.svg"}" alt="" class="mini-icon" />${view.category || "事件"}`;
+    eventHeroMetaEl.appendChild(categoryIcon);
+
+    const dayChip = document.createElement("span");
+    dayChip.className = "hero-chip";
+    dayChip.innerHTML = `<img src="assets/icons/map-pin.svg" alt="" class="mini-icon" />第${view.day}天`;
+    eventHeroMetaEl.appendChild(dayChip);
+  }
+
   function renderImpactPills(impact, wrap) {
-    const entries = Object.entries(impact || {})
+    const statEntries = Object.entries(impact?.stats || {})
       .map(([k, v]) => [k, Math.round(v * 10) / 10])
       .filter(([, v]) => Math.abs(v) >= 0.5)
       .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-      .slice(0, 4);
+      .slice(0, 3);
 
-    if (!entries.length) {
+    const npcEntries = (impact?.npcs || [])
+      .filter(x => Math.abs(x.delta || 0) >= 0.5)
+      .slice(0, 2);
+
+    if (!statEntries.length && !npcEntries.length) {
       const pill = document.createElement("span");
       pill.className = "impact-pill";
       pill.textContent = "未知后果";
@@ -164,11 +237,19 @@
       return;
     }
 
-    entries.forEach(([k, v]) => {
+    statEntries.forEach(([k, v]) => {
       const pill = document.createElement("span");
       pill.className = `impact-pill ${v >= 0 ? "pos" : "neg"}`;
       const sign = v > 0 ? "+" : "";
       pill.textContent = `${statLabelMap[k] || k} ${sign}${v}`;
+      wrap.appendChild(pill);
+    });
+
+    npcEntries.forEach(x => {
+      const pill = document.createElement("span");
+      pill.className = `impact-pill npc ${x.delta >= 0 ? "pos" : "neg"}`;
+      const sign = x.delta > 0 ? "+" : "";
+      pill.textContent = `${x.name} ${sign}${x.delta}`;
       wrap.appendChild(pill);
     });
   }
@@ -216,6 +297,13 @@
 
   function renderChoices(view) {
     choicesEl.innerHTML = "";
+    const count = view.choices.length;
+    let cardMin = 190;
+    if (count <= 3) cardMin = 260;
+    else if (count === 4) cardMin = 220;
+    else if (count === 5) cardMin = 200;
+    choicesEl.style.setProperty("--card-min", `${cardMin}px`);
+    choicesEl.setAttribute("data-count", String(count));
 
     view.choices.forEach((choice, index) => {
       const card = document.createElement("article");
@@ -225,7 +313,7 @@
 
       const top = document.createElement("div");
       top.className = "tarot-top";
-      top.textContent = `ARCANA ${String(index + 1).padStart(2, "0")}`;
+      top.innerHTML = `<span>ARCANA ${String(index + 1).padStart(2, "0")}</span><img src="${categoryIconMap[view.category] || "assets/icons/route.svg"}" alt="" class="mini-icon" />`;
       card.appendChild(top);
 
       const label = document.createElement("div");
@@ -240,7 +328,7 @@
 
       const bottom = document.createElement("div");
       bottom.className = "tarot-bottom";
-      bottom.textContent = `[#${index + 1}]`;
+      bottom.innerHTML = `<span>[#${index + 1}]</span>${choice.impact?.npcs?.length ? `<span class="npc-hint"><img src="assets/icons/users.svg" alt="" class="mini-icon" />关系变动</span>` : ""}`;
       card.appendChild(bottom);
 
       if (!choice.disabled) {
@@ -268,11 +356,13 @@
     resultEl.textContent = view.result || "";
 
     renderSceneTheme(view);
+    renderEventHero(view);
     renderChoices(view);
     renderStats(view.stats);
     renderIdentity(view.profile);
     renderWorld(view);
-    renderMemory(view.log);
+    renderNpcRelations(view.npcs || []);
+    renderMemory(view.memory?.majorDecisions || view.log);
     renderLog(view.log);
   }
 
@@ -302,14 +392,6 @@
         if (choice && !choice.disabled) pickChoice(choice.id);
       }
     });
-  }
-
-  function bindHorizontalWheel() {
-    choicesEl.addEventListener("wheel", e => {
-      if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-      choicesEl.scrollLeft += e.deltaY;
-      e.preventDefault();
-    }, { passive: false });
   }
 
   function bindAudioUnlock() {
@@ -425,7 +507,6 @@
 
   openSetup(null);
   bindKeyboardShortcuts();
-  bindHorizontalWheel();
   bindAudioUnlock();
   initSkyline();
 })();

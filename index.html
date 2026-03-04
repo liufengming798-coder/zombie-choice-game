@@ -32,6 +32,8 @@
     <section class="identity-bar">
       <span id="id-name" class="chip">身份: 未命名</span>
       <span id="id-status" class="chip">状态: -</span>
+      <span id="id-bond" class="chip">盟友: -</span>
+      <span id="id-risk" class="chip">紧张关系: -</span>
       <span id="stage-tag" class="chip stage"></span>
       <span id="event-category" class="chip category">事件类型: -</span>
     </section>
@@ -47,7 +49,11 @@
 
         <div class="scene-header">
           <h2 id="event-title"></h2>
-          <div class="scene-sub">横向塔罗卡选择: 鼠标滚轮横移，按 <kbd>1-9</kbd> 快速选牌</div>
+          <div class="scene-sub">塔罗卡选择: 尽量同屏展示全部选项，按 <kbd>1-9</kbd> 快速选牌</div>
+        </div>
+        <div id="event-hero" class="event-hero">
+          <img id="event-hero-img" alt="事件场景图" />
+          <div id="event-hero-meta" class="event-hero-meta"></div>
         </div>
         <p id="event-body"></p>
         <p id="event-result" class="result"></p>
@@ -64,6 +70,11 @@
         <section class="story-memory">
           <h3>关键轨迹</h3>
           <div id="memory" class="memory"></div>
+        </section>
+
+        <section class="npc-wrap">
+          <h3>人物关系网</h3>
+          <div id="npc-relations" class="npc-relations"></div>
         </section>
 
         <section class="log-wrap">
