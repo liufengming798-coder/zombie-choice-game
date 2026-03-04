@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>尸潮余温</title>
+  <title>魔都生存手记</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -13,12 +13,13 @@
   <main class="app-shell">
     <header class="hud-top">
       <div class="brand-wrap">
-        <h1>尸潮余温</h1>
+        <h1>魔都生存手记</h1>
         <p id="hook-text"></p>
       </div>
       <div class="world-wrap">
         <div class="world-chip" id="world-district">区域: -</div>
-        <div class="world-chip" id="world-weather">天气: -</div>
+        <div class="world-chip" id="world-road">道路: -</div>
+        <div class="world-chip" id="world-record">纪录: -</div>
         <div class="world-chip danger" id="world-pressure">威胁: -</div>
       </div>
       <div class="top-actions">
@@ -29,9 +30,8 @@
     </header>
 
     <section class="identity-bar">
-      <span id="id-name" class="chip">姓名: 未命名</span>
-      <span id="id-career" class="chip">职业: -</span>
-      <span id="id-background" class="chip">末日角色: -</span>
+      <span id="id-name" class="chip">身份: 未命名</span>
+      <span id="id-status" class="chip">状态: -</span>
       <span id="stage-tag" class="chip stage"></span>
       <span id="event-category" class="chip category">事件类型: -</span>
     </section>
@@ -44,27 +44,26 @@
           <div class="scan-line"></div>
           <div class="scene-label" id="scene-label">NEUTRAL</div>
         </div>
+
         <div class="scene-header">
           <h2 id="event-title"></h2>
-          <div class="scene-sub">按 <kbd>A</kbd>/<kbd>D</kbd> 快速选择左右选项，按 <kbd>1-9</kbd> 选择对应按钮</div>
+          <div class="scene-sub">横向塔罗卡选择: 鼠标滚轮横移，按 <kbd>1-9</kbd> 快速选牌</div>
         </div>
         <p id="event-body"></p>
         <p id="event-result" class="result"></p>
 
-        <section id="special-panel" class="special-panel hidden"></section>
-        <section id="choices" class="choices" aria-live="polite"></section>
+        <section id="choices" class="choices tarot-row" aria-live="polite"></section>
       </article>
 
       <aside class="control-panel">
-        <section class="tactic-wrap">
-          <h3>战术姿态</h3>
-          <div id="tactic-buttons" class="tactic-buttons"></div>
-          <p id="tactic-desc" class="muted"></p>
+        <section>
+          <h3>生存仪表</h3>
+          <div id="stats" class="stats"></div>
         </section>
 
-        <section>
-          <h3>状态仪表</h3>
-          <div id="stats" class="stats"></div>
+        <section class="story-memory">
+          <h3>关键轨迹</h3>
+          <div id="memory" class="memory"></div>
         </section>
 
         <section class="log-wrap">
@@ -77,27 +76,16 @@
 
   <section id="setup-screen" class="setup-screen">
     <div class="setup-card">
-      <h2>建立你的生存档案</h2>
-      <p>职业与末日角色将影响起始资源、事件权重与检定体验。</p>
+      <h2>输入你的身份</h2>
+      <p id="premise-text"></p>
 
       <label class="field">
         <span>姓名</span>
-        <input id="player-name" type="text" maxlength="12" placeholder="例如：林川" />
+        <input id="player-name" type="text" maxlength="16" placeholder="例如：陈默" />
       </label>
 
-      <div class="field-grid">
-        <label class="field">
-          <span>末日前职业</span>
-          <select id="player-career"></select>
-        </label>
-        <label class="field">
-          <span>末日角色</span>
-          <select id="player-background"></select>
-        </label>
-      </div>
-
       <div id="profile-preview" class="preview"></div>
-      <button id="btn-start" class="btn start">进入第1天</button>
+      <button id="btn-start" class="btn start">开始生存挑战</button>
     </div>
   </section>
 

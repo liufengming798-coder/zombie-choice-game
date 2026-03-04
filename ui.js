@@ -9,29 +9,25 @@
   const categoryEl = document.getElementById("event-category");
   const choicesEl = document.getElementById("choices");
   const statsEl = document.getElementById("stats");
+  const memoryEl = document.getElementById("memory");
   const logEl = document.getElementById("log");
   const logToggleBtn = document.getElementById("toggle-log");
   const hookTextEl = document.getElementById("hook-text");
 
   const worldDistrictEl = document.getElementById("world-district");
-  const worldWeatherEl = document.getElementById("world-weather");
+  const worldRoadEl = document.getElementById("world-road");
+  const worldRecordEl = document.getElementById("world-record");
   const worldPressureEl = document.getElementById("world-pressure");
 
-  const tacticButtonsEl = document.getElementById("tactic-buttons");
-  const tacticDescEl = document.getElementById("tactic-desc");
-
   const setupEl = document.getElementById("setup-screen");
+  const premiseEl = document.getElementById("premise-text");
   const nameInput = document.getElementById("player-name");
-  const careerSelect = document.getElementById("player-career");
-  const bgSelect = document.getElementById("player-background");
   const previewEl = document.getElementById("profile-preview");
   const startBtn = document.getElementById("btn-start");
 
   const identityNameEl = document.getElementById("id-name");
-  const identityCareerEl = document.getElementById("id-career");
-  const identityBgEl = document.getElementById("id-background");
+  const identityStatusEl = document.getElementById("id-status");
 
-  const specialPanelEl = document.getElementById("special-panel");
   const canvas = document.getElementById("skyline-canvas");
   const sceneStageEl = document.getElementById("scene-stage");
   const sceneLabelEl = document.getElementById("scene-label");
@@ -39,11 +35,11 @@
   const statLabelMap = Object.fromEntries((data.statDefs || []).map(s => [s.key, s.label]));
 
   let latestView = null;
-  let specialTimerId = null;
-  let specialRemain = 0;
-  let specialEventId = null;
-  let specialNotifiedId = null;
   let audioCtx = null;
+
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
 
   function ensureAudioContext() {
     if (audioCtx) return audioCtx;
@@ -59,48 +55,28 @@
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const amp = ctx.createGain();
+
     osc.type = type;
     osc.frequency.setValueAtTime(freq, now);
     amp.gain.setValueAtTime(0.0001, now);
-    amp.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+    amp.gain.exponentialRampToValueAtTime(gain, now + 0.012);
     amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
     osc.connect(amp);
     amp.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + duration + 0.02);
+    osc.stop(now + duration + 0.03);
   }
 
   function playUiSound(kind) {
     if (kind === "choice") {
-      playTone(240, 0.07, "triangle", 0.028);
-      return;
-    }
-    if (kind === "special") {
-      playTone(188, 0.12, "square", 0.024);
-      setTimeout(() => playTone(262, 0.08, "triangle", 0.02), 45);
+      playTone(188, 0.08, "triangle", 0.026);
+      setTimeout(() => playTone(265, 0.08, "triangle", 0.018), 45);
       return;
     }
     if (kind === "danger") {
-      playTone(132, 0.16, "sawtooth", 0.028);
-      return;
+      playTone(132, 0.14, "sawtooth", 0.03);
     }
-    if (kind === "tactic") {
-      playTone(320, 0.06, "triangle", 0.02);
-      return;
-    }
-  }
-
-  function clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
-  }
-
-  function clearSpecialTimer() {
-    if (specialTimerId) {
-      clearInterval(specialTimerId);
-      specialTimerId = null;
-    }
-    specialRemain = 0;
-    specialEventId = null;
   }
 
   function statPercent(def, val) {
@@ -125,18 +101,52 @@
     });
   }
 
-  function formatImpact(impact) {
-    const entries = Object.entries(impact || {})
-      .map(([k, v]) => [k, Math.round(v * 10) / 10])
-      .filter(([, v]) => Math.abs(v) >= 0.5)
-      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-      .slice(0, 4);
+  function renderMemory(log) {
+    memoryEl.innerHTML = "";
+    const picks = (log || []).slice(0, 6);
+    picks.forEach((line, idx) => {
+      const item = document.createElement("div");
+      item.className = "memory-item";
+      item.textContent = `${idx + 1}. ${line}`;
+      memoryEl.appendChild(item);
+    });
+    if (!picks.length) {
+      const item = document.createElement("div");
+      item.className = "memory-item";
+      item.textContent = "暂无关键轨迹";
+      memoryEl.appendChild(item);
+    }
+  }
 
-    if (!entries.length) return "影响较小";
-    return entries.map(([k, v]) => {
-      const sign = v > 0 ? "+" : "";
-      return `${statLabelMap[k] || k} ${sign}${v}`;
-    }).join(" · ");
+  function renderLog(log) {
+    logEl.innerHTML = "";
+    log.forEach(line => {
+      const d = document.createElement("div");
+      d.className = "log-item";
+      d.textContent = line;
+      logEl.appendChild(d);
+    });
+  }
+
+  function renderIdentity(profile) {
+    identityNameEl.textContent = `身份: ${profile?.name || "未命名"}（${profile?.citizenTag || "市民"}）`;
+    identityStatusEl.textContent = `状态: ${profile?.statusLabel || "-"}`;
+  }
+
+  function renderWorld(view) {
+    const world = view.world || {};
+    worldDistrictEl.textContent = `区域: ${world.district || "未知"}`;
+    worldRoadEl.textContent = `道路: ${world.road || "未知"}`;
+    worldRecordEl.textContent = `纪录: ${Math.round(world.dayRecord || view.day || 0)}天`;
+    worldPressureEl.textContent = `威胁: ${Math.round(world.pressure || 0)}`;
+
+    if ((world.pressure || 0) >= 78) playUiSound("danger");
+  }
+
+  function renderSceneTheme(view) {
+    const theme = view.sceneTheme || "neutral";
+    sceneStageEl.className = `scene-stage ${theme}`;
+    sceneLabelEl.textContent = String(theme).toUpperCase();
   }
 
   function renderImpactPills(impact, wrap) {
@@ -149,7 +159,7 @@
     if (!entries.length) {
       const pill = document.createElement("span");
       pill.className = "impact-pill";
-      pill.textContent = "波动较小";
+      pill.textContent = "未知后果";
       wrap.appendChild(pill);
       return;
     }
@@ -166,17 +176,17 @@
   function pickChoice(choiceId) {
     if (!latestView) return;
     if (choiceId === "restart") {
-      clearSpecialTimer();
       openSetup(game.state?.profile || null);
       return;
     }
+
     const choice = latestView.choices.find(c => c.id === choiceId);
     if (!choice || choice.disabled) return;
     playUiSound("choice");
     render(game.choose(choice.id));
   }
 
-  function bindChoiceSwipe(card, choiceId) {
+  function bindTarotSwipe(card, choiceId) {
     let startX = null;
     let moved = 0;
 
@@ -189,17 +199,17 @@
     card.addEventListener("pointermove", e => {
       if (startX == null) return;
       moved = e.clientX - startX;
-      card.style.transform = `translateX(${clamp(moved, -32, 32)}px)`;
+      card.style.transform = `translateX(${clamp(moved, -30, 30)}px) rotate(${moved * 0.05}deg)`;
     });
 
     card.addEventListener("pointerup", () => {
-      if (Math.abs(moved) > 28) {
-        card.style.transform = "translateX(0)";
+      if (Math.abs(moved) > 24) {
+        card.style.transform = "translateX(0) rotate(0deg)";
         pickChoice(choiceId);
         startX = null;
         return;
       }
-      card.style.transform = "translateX(0)";
+      card.style.transform = "translateX(0) rotate(0deg)";
       startX = null;
     });
   }
@@ -209,13 +219,18 @@
 
     view.choices.forEach((choice, index) => {
       const card = document.createElement("article");
-      card.className = `choice-card ${choice.disabled ? "disabled" : ""}`;
+      card.className = `choice-card tarot-card ${choice.disabled ? "disabled" : ""}`;
       card.setAttribute("role", "button");
       card.setAttribute("tabindex", choice.disabled ? "-1" : "0");
 
+      const top = document.createElement("div");
+      top.className = "tarot-top";
+      top.textContent = `ARCANA ${String(index + 1).padStart(2, "0")}`;
+      card.appendChild(top);
+
       const label = document.createElement("div");
       label.className = "choice-label";
-      label.textContent = `[${index + 1}] ${choice.label}`;
+      label.textContent = choice.label;
       card.appendChild(label);
 
       const impactWrap = document.createElement("div");
@@ -223,10 +238,10 @@
       renderImpactPills(choice.impact, impactWrap);
       card.appendChild(impactWrap);
 
-      const helper = document.createElement("div");
-      helper.className = "scene-sub";
-      helper.textContent = formatImpact(choice.impact);
-      card.appendChild(helper);
+      const bottom = document.createElement("div");
+      bottom.className = "tarot-bottom";
+      bottom.textContent = `[#${index + 1}]`;
+      card.appendChild(bottom);
 
       if (!choice.disabled) {
         card.addEventListener("click", () => pickChoice(choice.id));
@@ -236,204 +251,40 @@
             pickChoice(choice.id);
           }
         });
-        bindChoiceSwipe(card, choice.id);
+        bindTarotSwipe(card, choice.id);
       }
+
       choicesEl.appendChild(card);
     });
   }
 
-  function renderSpecial(view) {
-    clearSpecialTimer();
-    specialPanelEl.innerHTML = "";
-    specialPanelEl.classList.add("hidden");
-
-    if (!view.special) {
-      specialNotifiedId = null;
-      return;
-    }
-    if (specialNotifiedId !== view.eventId) {
-      playUiSound("special");
-      specialNotifiedId = view.eventId;
-    }
-    specialPanelEl.classList.remove("hidden");
-
-    const h = document.createElement("h4");
-    h.textContent = `特殊事件 · ${view.special.title}`;
-    specialPanelEl.appendChild(h);
-
-    const desc = document.createElement("div");
-    desc.textContent = view.special.description || "";
-    specialPanelEl.appendChild(desc);
-
-    const meta = document.createElement("div");
-    meta.className = "special-meta";
-    meta.textContent = view.special.meta || "";
-    specialPanelEl.appendChild(meta);
-
-    const timerEl = document.createElement("div");
-    timerEl.className = "special-meta";
-    specialPanelEl.appendChild(timerEl);
-
-    const actions = document.createElement("div");
-    actions.className = "special-actions";
-
-    if (view.special.type === "skill_check") {
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.textContent = view.special.actionLabel || "执行";
-      btn.addEventListener("click", () => render(game.resolveSpecial({})));
-      actions.appendChild(btn);
-    }
-
-    if (view.special.type === "route_pick") {
-      (view.special.routes || []).forEach((route, idx) => {
-        const btn = document.createElement("button");
-        btn.className = "btn";
-        btn.textContent = route;
-        btn.addEventListener("click", () => render(game.resolveSpecial({ routeIndex: idx })));
-        actions.appendChild(btn);
-      });
-    }
-
-    specialPanelEl.appendChild(actions);
-
-    if ((view.special.timerSec || 0) > 0) {
-      specialRemain = view.special.timerSec;
-      specialEventId = view.eventId;
-      timerEl.textContent = `倒计时 ${specialRemain}s`;
-      specialTimerId = setInterval(() => {
-        specialRemain -= 1;
-        timerEl.textContent = `倒计时 ${Math.max(0, specialRemain)}s`;
-        if (specialRemain === 3 || specialRemain === 2 || specialRemain === 1) playUiSound("danger");
-        if (specialRemain <= 0) {
-          clearSpecialTimer();
-          render(game.resolveSpecial({ timeout: true }));
-        }
-      }, 1000);
-    }
-  }
-
-  function renderLog(log) {
-    logEl.innerHTML = "";
-    log.forEach(line => {
-      const d = document.createElement("div");
-      d.className = "log-item";
-      d.textContent = line;
-      logEl.appendChild(d);
-    });
-  }
-
-  function renderIdentity(profile) {
-    identityNameEl.textContent = `姓名: ${profile?.name || "未命名"}`;
-    identityCareerEl.textContent = `职业: ${profile?.careerLabel || "-"}`;
-    identityBgEl.textContent = `末日角色: ${profile?.backgroundLabel || "-"}`;
-  }
-
-  function renderWorld(view) {
-    const world = view.world || {};
-    worldDistrictEl.textContent = `区域: ${world.district || "未知"}`;
-    worldWeatherEl.textContent = `天气: ${world.weather || "未知"}`;
-    worldWeatherEl.title = world.weatherDesc || "";
-    worldPressureEl.textContent = `威胁: ${Math.round(world.pressure || 0)}`;
-  }
-
-  function renderTactics(view) {
-    tacticButtonsEl.innerHTML = "";
-    (view.tactics || []).forEach(t => {
-      const btn = document.createElement("button");
-      btn.className = `tactic-btn ${view.tactic === t.id ? "active" : ""}`;
-      btn.textContent = t.label;
-      btn.title = t.desc;
-      btn.addEventListener("click", () => {
-        game.setTactic(t.id);
-        playUiSound("tactic");
-        const refreshed = game.getCurrentView(false);
-        render(refreshed);
-      });
-      tacticButtonsEl.appendChild(btn);
-    });
-
-    const active = (view.tactics || []).find(t => t.id === view.tactic);
-    tacticDescEl.textContent = active?.desc || "";
-  }
-
-  function renderSceneTheme(view) {
-    const theme = view.sceneTheme || "neutral";
-    if (!sceneStageEl) return;
-    sceneStageEl.className = `scene-stage ${theme}`;
-    if (sceneLabelEl) sceneLabelEl.textContent = String(theme).toUpperCase();
-  }
-
   function render(view) {
     latestView = view;
-    if (specialEventId && specialEventId !== view.eventId) clearSpecialTimer();
 
     stageEl.textContent = `${view.stageLabel} | 第${view.day}天`;
-    categoryEl.textContent = `事件类型: ${view.category || "结局"}`;
+    categoryEl.textContent = `事件类型: ${view.category || "未知"}`;
     titleEl.textContent = view.title;
     bodyEl.textContent = view.body;
     resultEl.textContent = view.result || "";
 
     renderSceneTheme(view);
-    renderSpecial(view);
     renderChoices(view);
     renderStats(view.stats);
     renderIdentity(view.profile);
     renderWorld(view);
-    renderTactics(view);
+    renderMemory(view.log);
     renderLog(view.log);
-  }
-
-  function fillProfileSelectors() {
-    const profiles = game.getProfileOptions();
-    careerSelect.innerHTML = "";
-
-    profiles.careers.forEach(x => {
-      const opt = document.createElement("option");
-      opt.value = x.id;
-      opt.textContent = `${x.label}`;
-      careerSelect.appendChild(opt);
-    });
-    renderBackgroundOptions(careerSelect.value, null);
-  }
-
-  function renderBackgroundOptions(careerId, preferredBackground) {
-    const profiles = game.getProfileOptions();
-    const all = profiles.backgrounds || [];
-    const options = all.filter(bg => !bg.careers || bg.careers.includes(careerId));
-    const finalOptions = options.length ? options : all;
-    const keep = preferredBackground && finalOptions.some(x => x.id === preferredBackground);
-
-    bgSelect.innerHTML = "";
-    finalOptions.forEach(x => {
-      const opt = document.createElement("option");
-      opt.value = x.id;
-      opt.textContent = `${x.label}`;
-      bgSelect.appendChild(opt);
-    });
-    if (keep) bgSelect.value = preferredBackground;
-  }
-
-  function updateProfilePreview() {
-    const profiles = game.getProfileOptions();
-    const c = profiles.careers.find(x => x.id === careerSelect.value) || profiles.careers[0];
-    const b = profiles.backgrounds.find(x => x.id === bgSelect.value) || profiles.backgrounds[0];
-    previewEl.textContent = `末日前职业: ${c.label}（${c.desc}）\n末日角色: ${b.label}（${b.desc}）`;
   }
 
   function openSetup(seedProfile) {
     setupEl.classList.remove("hidden");
     if (seedProfile?.name) nameInput.value = seedProfile.name;
-    if (seedProfile?.career) careerSelect.value = seedProfile.career;
-    renderBackgroundOptions(careerSelect.value, seedProfile?.background || null);
-    updateProfilePreview();
+    previewEl.textContent = `你将以“普通上海市民”身份进入叙事。\n目标: 尽可能提升生存天数纪录。`;
   }
 
   function startRun() {
     const profile = {
-      name: (nameInput.value || "无名").trim().slice(0, 12) || "无名",
-      career: careerSelect.value,
-      background: bgSelect.value
+      name: (nameInput.value || "匿名市民").trim().slice(0, 16) || "匿名市民"
     };
     const view = game.start(profile);
     setupEl.classList.add("hidden");
@@ -442,26 +293,23 @@
 
   function bindKeyboardShortcuts() {
     window.addEventListener("keydown", e => {
-      if (setupEl && !setupEl.classList.contains("hidden")) return;
+      if (!setupEl.classList.contains("hidden")) return;
       if (!latestView || !latestView.choices?.length) return;
 
       if (e.key >= "1" && e.key <= "9") {
         const idx = Number(e.key) - 1;
         const choice = latestView.choices[idx];
         if (choice && !choice.disabled) pickChoice(choice.id);
-        return;
-      }
-
-      if (e.key.toLowerCase() === "a") {
-        const choice = latestView.choices[0];
-        if (choice && !choice.disabled) pickChoice(choice.id);
-      }
-
-      if (e.key.toLowerCase() === "d") {
-        const choice = latestView.choices[1];
-        if (choice && !choice.disabled) pickChoice(choice.id);
       }
     });
+  }
+
+  function bindHorizontalWheel() {
+    choicesEl.addEventListener("wheel", e => {
+      if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      choicesEl.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
   }
 
   function bindAudioUnlock() {
@@ -485,20 +333,20 @@
       canvas.style.height = `${window.innerHeight}px`;
 
       buildings.length = 0;
-      const base = canvas.height * 0.78;
+      const base = canvas.height * 0.8;
       for (let x = 0; x < canvas.width; ) {
-        const w = 30 + Math.random() * 68;
-        const h = 50 + Math.random() * 170;
+        const w = 24 + Math.random() * 72;
+        const h = 60 + Math.random() * 190;
         buildings.push({ x, w, h, y: base - h });
-        x += w + 6;
+        x += w + 5;
       }
 
       stars.length = 0;
-      for (let i = 0; i < 80; i += 1) {
+      for (let i = 0; i < 90; i += 1) {
         stars.push({
           x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height * 0.65,
-          r: 0.6 + Math.random() * 1.6,
+          y: Math.random() * canvas.height * 0.62,
+          r: 0.5 + Math.random() * 1.8,
           t: Math.random() * Math.PI * 2
         });
       }
@@ -506,36 +354,35 @@
 
     function draw(ts) {
       const pressure = latestView?.world?.pressure || 0;
-      const noise = latestView?.stats?.noise || 0;
-      const glow = 0.08 + pressure / 450;
+      const glow = 0.08 + pressure / 430;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      grd.addColorStop(0, `rgba(58, 91, 120, ${0.32 + glow})`);
-      grd.addColorStop(1, "rgba(13, 18, 24, 0.1)");
+      grd.addColorStop(0, `rgba(60, 88, 118, ${0.34 + glow})`);
+      grd.addColorStop(1, "rgba(9, 13, 18, 0.12)");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       stars.forEach(s => {
-        const pulse = 0.5 + Math.sin(ts / 700 + s.t) * 0.4;
-        ctx.fillStyle = `rgba(223, 235, 247, ${0.08 + pulse * 0.22})`;
+        const pulse = 0.5 + Math.sin(ts / 780 + s.t) * 0.4;
+        ctx.fillStyle = `rgba(229, 238, 245, ${0.08 + pulse * 0.2})`;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         ctx.fill();
       });
 
       buildings.forEach((b, idx) => {
-        const shade = 18 + (idx % 4) * 8;
-        ctx.fillStyle = `rgba(${shade}, ${shade + 8}, ${shade + 16}, 0.74)`;
+        const shade = 17 + (idx % 5) * 7;
+        ctx.fillStyle = `rgba(${shade}, ${shade + 10}, ${shade + 18}, 0.78)`;
         ctx.fillRect(b.x, b.y, b.w, b.h);
       });
 
-      const waveY = canvas.height * 0.68 + Math.sin(ts / 400) * 10;
-      ctx.strokeStyle = `rgba(255, 114, 92, ${0.12 + noise / 520})`;
+      const waveY = canvas.height * 0.7 + Math.sin(ts / 430) * 12;
+      ctx.strokeStyle = `rgba(255, 115, 96, ${0.12 + pressure / 520})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      for (let x = 0; x < canvas.width; x += 12) {
-        const y = waveY + Math.sin((x + ts * 0.25) / 28) * (4 + pressure / 22);
+      for (let x = 0; x < canvas.width; x += 10) {
+        const y = waveY + Math.sin((x + ts * 0.26) / 24) * (4 + pressure / 20);
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -563,7 +410,6 @@
   });
 
   document.getElementById("btn-restart").addEventListener("click", () => {
-    clearSpecialTimer();
     openSetup(game.state?.profile || null);
   });
 
@@ -572,18 +418,14 @@
     logToggleBtn.textContent = logEl.classList.contains("collapsed") ? "行动日志 ▸" : "行动日志 ▾";
   });
 
-  careerSelect.addEventListener("change", () => {
-    renderBackgroundOptions(careerSelect.value, bgSelect.value);
-    updateProfilePreview();
-  });
-
-  bgSelect.addEventListener("change", updateProfilePreview);
   startBtn.addEventListener("click", startRun);
 
-  fillProfileSelectors();
   hookTextEl.textContent = data.meta.hook;
+  premiseEl.textContent = `${data.meta.premise}\n\n提示: 本作为架空叙事挑战，不对应现实结论。`;
+
   openSetup(null);
   bindKeyboardShortcuts();
+  bindHorizontalWheel();
   bindAudioUnlock();
   initSkyline();
 })();

@@ -1,31 +1,7 @@
 (function () {
-  const SAVE_KEY = "zombie_choice_save_v3";
-  const LEGACY_SAVE_KEYS = ["zombie_choice_save_v2"];
+  const SAVE_KEY = "zombie_choice_save_v4";
+  const LEGACY_SAVE_KEYS = ["zombie_choice_save_v3", "zombie_choice_save_v2"];
   const data = window.GAME_DATA;
-  const TACTICS = {
-    stealth: { id: "stealth", label: "潜行", desc: "更低噪音，战斗压低，资源增长变慢。" },
-    balanced: { id: "balanced", label: "均衡", desc: "默认策略，不偏不倚。" },
-    assault: { id: "assault", label: "强攻", desc: "高风险高回报，更容易卷入冲突。" }
-  };
-  const DISTRICTS = ["旧城区", "仓储区", "滨河高架", "工业走廊", "天线坡道", "商业废墟"];
-  const WEATHER = [
-    { key: "mist", label: "酸雾", desc: "视距下降，脚步声被放大。" },
-    { key: "rain", label: "冷雨", desc: "噪声扩散变慢，体力流失更快。" },
-    { key: "dry", label: "干燥热浪", desc: "脱水风险上升，感染波动变大。" },
-    { key: "wind", label: "逆风", desc: "广播信号不稳，气味扩散更远。" }
-  ];
-  const SCENE_THEMES = {
-    战斗: "combat",
-    冲突: "combat",
-    探索: "scavenge",
-    交易: "trade",
-    同伴互动: "bond",
-    庇护所管理: "shelter",
-    道德困境: "moral",
-    特殊事件: "signal",
-    职业专属: "craft",
-    丧尸分支: "zombie"
-  };
 
   function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
@@ -36,59 +12,15 @@
   }
 
   function getStage(day) {
-    if (day <= 3) return 1;
-    if (day <= 8) return 2;
-    if (day <= 14) return 3;
-    if (day <= 21) return 4;
+    if (day <= 5) return 1;
+    if (day <= 12) return 2;
+    if (day <= 24) return 3;
+    if (day <= 45) return 4;
     return 5;
   }
 
   function getStatDef(key) {
     return data.statDefs.find(s => s.key === key);
-  }
-
-  function readStat(state, key) {
-    return state.stats[key] ?? 0;
-  }
-
-  function matchComparators(value, rule) {
-    if (rule.gte !== undefined && !(value >= rule.gte)) return false;
-    if (rule.lte !== undefined && !(value <= rule.lte)) return false;
-    if (rule.gt !== undefined && !(value > rule.gt)) return false;
-    if (rule.lt !== undefined && !(value < rule.lt)) return false;
-    if (rule.eq !== undefined && !(value === rule.eq)) return false;
-    return true;
-  }
-
-  function matchCondition(state, cond) {
-    if (!cond) return true;
-
-    if (cond.all && !cond.all.every(c => matchCondition(state, c))) return false;
-    if (cond.any && !cond.any.some(c => matchCondition(state, c))) return false;
-
-    if (cond.dayGte !== undefined && state.day < cond.dayGte) return false;
-    if (cond.dayLte !== undefined && state.day > cond.dayLte) return false;
-
-    const stage = getStage(state.day);
-    if (cond.stageGte !== undefined && stage < cond.stageGte) return false;
-    if (cond.stageLte !== undefined && stage > cond.stageLte) return false;
-
-    if (cond.flagsAll && !cond.flagsAll.every(f => !!state.flags[f])) return false;
-    if (cond.flagsAny && !cond.flagsAny.some(f => !!state.flags[f])) return false;
-    if (cond.flagsNot && cond.flagsNot.some(f => !!state.flags[f])) return false;
-
-    if (cond.profile) {
-      if (cond.profile.career && state.profile.career !== cond.profile.career) return false;
-      if (cond.profile.background && state.profile.background !== cond.profile.background) return false;
-    }
-
-    if (cond.stats) {
-      for (const [key, rule] of Object.entries(cond.stats)) {
-        if (!matchComparators(readStat(state, key), rule)) return false;
-      }
-    }
-
-    return true;
   }
 
   function weightedPick(items, getWeight) {
@@ -107,72 +39,49 @@
     return weighted[weighted.length - 1].item;
   }
 
-  function getProfileDef(type, id) {
-    const group = type === "career" ? data.profiles.careers : data.profiles.backgrounds;
-    return group.find(x => x.id === id) || group[0];
+  function profileMeta(state) {
+    return {
+      name: state.profile.name,
+      citizenTag: "上海市民",
+      statusLabel: state.flags.hasCommunity ? "社区协同中" : "流动求生中"
+    };
   }
 
-  function getAllowedBackgrounds(careerId) {
-    const all = data.profiles.backgrounds || [];
-    const filtered = all.filter(bg => !bg.careers || bg.careers.includes(careerId));
-    return filtered.length ? filtered : all;
-  }
-
-  function applyProfileBonus(state) {
-    const c = getProfileDef("career", state.profile.career);
-    const b = getProfileDef("background", state.profile.background);
-
-    const bundles = [c.startBonus || {}, b.startBonus || {}];
-    bundles.forEach(bundle => {
-      for (const [key, delta] of Object.entries(bundle)) {
-        const def = getStatDef(key);
-        if (!def) continue;
-        state.stats[key] = clamp(state.stats[key] + delta, def.min, def.max);
-      }
-    });
-
-    state.flags[`career_${c.id}`] = true;
-    state.flags[`background_${b.id}`] = true;
+  function tpl(text, state) {
+    if (!text) return "";
+    const district = data.districts[(state.day + state.turn) % data.districts.length];
+    const road = data.roads[(state.turn + state.day * 2) % data.roads.length];
+    const landmark = data.landmarks[(state.turn * 2 + state.day) % data.landmarks.length];
+    return String(text)
+      .replaceAll("{name}", state.profile.name)
+      .replaceAll("{district}", district)
+      .replaceAll("{road}", road)
+      .replaceAll("{landmark}", landmark);
   }
 
   function createStore(profileInput) {
     const base = deepClone(data.initialState);
-    const careerIds = (data.profiles.careers || []).map(x => x.id);
-    const defaultCareer = careerIds[0];
-    const requestedCareer = profileInput?.career || defaultCareer;
-    const selectedCareer = careerIds.includes(requestedCareer) ? requestedCareer : defaultCareer;
-    const allowedForCareer = getAllowedBackgrounds(selectedCareer);
-    const defaultBackground = allowedForCareer[0]?.id || data.profiles.backgrounds[0].id;
-    const requestedBackground = profileInput?.background || defaultBackground;
-    const validBackground = allowedForCareer.some(x => x.id === requestedBackground)
-      ? requestedBackground
-      : defaultBackground;
-    const profile = {
-      name: (profileInput?.name || "无名")
-        .replace(/\s+/g, "")
-        .slice(0, 12) || "无名",
-      career: selectedCareer,
-      background: validBackground
-    };
+    const name = (profileInput?.name || "匿名市民").replace(/\s+/g, "").slice(0, 16) || "匿名市民";
+    const bestDays = Number(localStorage.getItem("zombie_survival_best_days") || 0) || 0;
 
-    const state = {
+    return {
       ...base,
-      profile,
+      profile: { name },
+      day: base.day,
       turn: 0,
       lastResult: "",
       currentEventId: null,
+      currentTemplate: null,
       queue: [],
       log: [],
-      tactic: "balanced",
-      seenCounts: {},
-      lastSeenTurn: {},
-      doneOnceEvents: {},
+      seenEvents: {},
       recentEvents: [],
-      specialContext: null
+      storyMemory: {
+        majorDecisions: [],
+        routeHistory: []
+      },
+      bestDays
     };
-
-    applyProfileBonus(state);
-    return state;
   }
 
   function normalizeState(raw) {
@@ -187,58 +96,36 @@
       profile: { ...seeded.profile, ...(raw.profile || {}) },
       queue: Array.isArray(raw.queue) ? raw.queue : [],
       log: Array.isArray(raw.log) ? raw.log : [],
-      tactic: raw.tactic || "balanced",
-      seenCounts: raw.seenCounts || {},
-      lastSeenTurn: raw.lastSeenTurn || {},
-      doneOnceEvents: raw.doneOnceEvents || {},
+      seenEvents: raw.seenEvents || {},
       recentEvents: Array.isArray(raw.recentEvents) ? raw.recentEvents : [],
-      specialContext: raw.specialContext || null
+      storyMemory: raw.storyMemory || { majorDecisions: [], routeHistory: [] },
+      bestDays: Number(raw.bestDays || seeded.bestDays || 0)
     };
   }
 
-  function applyPassiveDecay(state) {
-    if (state.flags.zombified) {
-      state.stats.hunger = clamp(state.stats.hunger + 1, 0, 100);
-      state.stats.stress = clamp(state.stats.stress + 1, 0, 100);
-      state.stats.supplies = clamp(state.stats.supplies - 1, 0, 100);
-      state.stats.humanity = clamp(state.stats.humanity - 2, 0, 100);
-      state.stats.infection = clamp(state.stats.infection + 1, 40, 100);
-      if (state.stats.humanity <= 16) state.stats.health = clamp(state.stats.health - 2, 0, 100);
-      return;
+  function matchComparators(value, rule) {
+    if (rule.gte !== undefined && !(value >= rule.gte)) return false;
+    if (rule.lte !== undefined && !(value <= rule.lte)) return false;
+    if (rule.gt !== undefined && !(value > rule.gt)) return false;
+    if (rule.lt !== undefined && !(value < rule.lt)) return false;
+    if (rule.eq !== undefined && !(value === rule.eq)) return false;
+    return true;
+  }
+
+  function matchEndingCondition(state, cond) {
+    if (!cond) return true;
+    if (cond.all && !cond.all.every(c => matchEndingCondition(state, c))) return false;
+    if (cond.any && !cond.any.some(c => matchEndingCondition(state, c))) return false;
+    if (cond.dayGte !== undefined && state.day < cond.dayGte) return false;
+    if (cond.dayLte !== undefined && state.day > cond.dayLte) return false;
+
+    if (cond.stats) {
+      for (const [key, rule] of Object.entries(cond.stats)) {
+        const value = state.stats[key] ?? 0;
+        if (!matchComparators(value, rule)) return false;
+      }
     }
-
-    const stage = getStage(state.day);
-    const hungerGain = stage <= 2 ? 3 : stage === 3 ? 4 : 5;
-    const stressGain = state.stats.shelter < 30 ? 4 : 2;
-    const supplyDrain = stage <= 2 ? 2 : state.stats.shelter >= 60 ? 2 : 3;
-
-    state.stats.hunger = clamp(state.stats.hunger + hungerGain, 0, 100);
-    state.stats.stress = clamp(state.stats.stress + stressGain, 0, 100);
-    state.stats.supplies = clamp(state.stats.supplies - supplyDrain, 0, 100);
-
-    if (stage >= 4 && state.stats.supplies <= 12) {
-      state.stats.hunger = clamp(state.stats.hunger + 2, 0, 100);
-    }
-
-    if (state.flags.woundOpen) {
-      state.stats.health = clamp(state.stats.health - 2, 0, 100);
-      state.stats.infection = clamp(state.stats.infection + 2, 0, 100);
-    }
-
-    if (state.stats.hunger >= 80) state.stats.health = clamp(state.stats.health - 2, 0, 100);
-    if (state.stats.stress >= 80) state.stats.humanity = clamp(state.stats.humanity - 2, 0, 100);
-    if (state.stats.noise >= 75) state.stats.stress = clamp(state.stats.stress + 3, 0, 100);
-
-    if (state.tactic === "stealth") {
-      state.stats.noise = clamp(state.stats.noise - 3, 0, 100);
-      state.stats.stress = clamp(state.stats.stress + 1, 0, 100);
-      state.stats.supplies = clamp(state.stats.supplies - 1, 0, 100);
-    } else if (state.tactic === "assault") {
-      state.stats.noise = clamp(state.stats.noise + 4, 0, 100);
-      state.stats.stress = clamp(state.stats.stress + 2, 0, 100);
-      state.stats.ammo = clamp(state.stats.ammo - 2, 0, 100);
-      state.stats.supplies = clamp(state.stats.supplies + 1, 0, 100);
-    }
+    return true;
   }
 
   function applyEffects(state, effects) {
@@ -253,15 +140,11 @@
     }
 
     if (effects.flagsSet) {
-      for (const [k, v] of Object.entries(effects.flagsSet)) {
-        state.flags[k] = !!v;
-      }
+      for (const [k, v] of Object.entries(effects.flagsSet)) state.flags[k] = !!v;
     }
 
     if (effects.flagsClear) {
-      for (const k of effects.flagsClear) {
-        state.flags[k] = false;
-      }
+      for (const k of effects.flagsClear) state.flags[k] = false;
     }
 
     if (effects.queue) {
@@ -273,114 +156,78 @@
     return data.events.find(e => e.id === id) || null;
   }
 
-  function isEventEligible(state, event) {
-    if (!matchCondition(state, event.condition)) return false;
-
-    if (event.once && state.doneOnceEvents[event.id]) return false;
-
-    const last = state.lastSeenTurn[event.id];
-    if (last !== undefined && event.cooldown !== undefined) {
-      if (state.turn - last < event.cooldown) return false;
-    }
-
+  function eventMatchesContext(state, event) {
+    if (!event) return false;
+    if ((event.minDay || 1) > state.day) return false;
+    if (event.maxDay && state.day > event.maxDay) return false;
+    if (event.once !== false && state.seenEvents[event.id]) return false;
     if (state.recentEvents.includes(event.id)) return false;
+
+    const reqAll = event.requiresFlagsAll || [];
+    if (reqAll.length && !reqAll.every(f => !!state.flags[f])) return false;
+
+    const reqAny = event.requiresAnyFlags || [];
+    if (reqAny.length && !reqAny.some(f => !!state.flags[f])) return false;
+
+    const forbid = event.forbidFlags || [];
+    if (forbid.some(f => !!state.flags[f])) return false;
+
     return true;
   }
 
   function computeEventWeight(state, event) {
+    let w = event.weight || 1;
     const stage = getStage(state.day);
-    const seen = state.seenCounts[event.id] || 0;
-    const novelty = Math.max(0.08, 1 - seen * 0.28);
-    let w = (event.weight || 1) * novelty;
+    const scarcity = (100 - state.stats.supplies) / 100;
 
-    if (event.category === "战斗" && state.stats.noise >= 60) w *= 1.35;
-    if (event.category === "交易" && state.stats.supplies <= 30) w *= 1.3;
-    if (event.category === "庇护所管理" && state.stats.shelter <= 35) w *= 1.25;
-    if (event.category === "同伴互动" && state.stats.trust <= 35) w *= 1.2;
+    if (stage >= 4 && event.category === "长期求生") w *= 1.2;
+    if (state.stats.trust <= 25 && event.category === "组织重构") w *= 1.2;
+    if (state.flags.betrayedCivilians && event.category === "高压消耗") w *= 1.18;
+    if (state.flags.hasCommunity && event.category === "组织重构") w *= 1.1;
+    if (scarcity >= 0.55 && /补给|仓储|交换/.test(event.title)) w *= 1.18;
 
-    if (state.flags.career_medic && (event.category === "同伴互动" || event.category === "庇护所管理")) w *= 1.08;
-    if (state.flags.career_scout && event.category === "探索") w *= 1.1;
-    if (state.flags.career_soldier && event.category === "战斗") w *= 1.08;
-    if (state.flags.career_engineer && event.category === "庇护所管理") w *= 1.1;
-    if (state.flags.career_standup && (event.category === "同伴互动" || event.category === "职业专属")) w *= 1.1;
-    if (state.flags.career_astrologer && event.category === "特殊事件") w *= 1.1;
-    if (state.flags.career_pet_streamer && event.category === "职业专属") w *= 1.08;
-    if (state.flags.career_poet && (event.category === "道德困境" || event.category === "职业专属")) w *= 1.08;
-    if (state.flags.career_magician && (event.category === "探索" || event.category === "特殊事件")) w *= 1.08;
-    if (state.flags.career_delivery_king && event.category === "探索") w *= 1.1;
+    return Math.max(0.1, w);
+  }
 
-    if (state.flags.zombified) {
-      if (event.category === "丧尸分支") w *= 2.4;
-      if (event.category === "职业专属" || event.category === "同伴互动") w *= 0.85;
-    }
+  function buildTemplateEvent(state) {
+    const template = weightedPick(data.templateEvents, t => {
+      let w = 1;
+      if (t.id === "t_supply_run" && state.stats.supplies <= 45) w *= 1.5;
+      if (t.id === "t_night_defense" && state.stats.shelter <= 55) w *= 1.45;
+      if (state.day >= 30) w *= 1.12;
+      return w;
+    });
 
-    if (state.tactic === "stealth") {
-      if (event.category === "战斗" || event.category === "冲突") w *= 0.8;
-      if (event.category === "探索" || event.category === "交易") w *= 1.12;
-    } else if (state.tactic === "assault") {
-      if (event.category === "战斗" || event.category === "冲突") w *= 1.22;
-      if (event.category === "探索" || event.category === "交易") w *= 0.92;
-    }
+    if (!template) return null;
 
-    if (event.isKey && stage >= 4 && !state.doneOnceEvents[event.id]) w *= 1.25;
-    if (event.id === "k_radio_tower" && stage >= 4 && !state.flags.knowsEvacPoint) w *= 1.6;
-    if (event.id === "k_bridge_blast" && stage >= 5 && state.flags.knowsEvacPoint && !state.flags.bridgeOpen) w *= 1.7;
-    if (event.id === "k_refugee_vote" && stage >= 4 && !state.flags.finalVoteDone) w *= 1.4;
-    if (event.id === "k_final_hall" && stage >= 5 && state.day >= 21 && !state.flags.sacrificeMade) w *= 1.3;
-    if (event.id === "k_turning_point" && state.stats.infection >= 55 && !state.flags.zombified) w *= 2.4;
-    if (event.id === "r_mutation_offer" && state.stats.infection >= 42 && !state.flags.zombified) w *= 1.8;
+    const district = data.districts[(state.day * 7 + state.turn) % data.districts.length];
+    const road = data.roads[(state.turn * 5 + state.day) % data.roads.length];
+    const landmark = data.landmarks[(state.turn * 3 + state.day * 2) % data.landmarks.length];
 
-    return w;
+    const id = `${template.id}#${state.day}#${state.turn}`;
+    return {
+      id,
+      isTemplate: true,
+      baseId: template.id,
+      category: template.category,
+      title: tpl(template.title, state),
+      body: tpl(template.body, state),
+      location: district,
+      roads: [road],
+      choices: template.choices
+    };
   }
 
   function pickNextEvent(state) {
     if (state.queue.length > 0) {
-      const forcedId = state.queue.shift();
-      const forcedEvent = getEventById(forcedId);
-      if (forcedEvent && isEventEligible(state, forcedEvent)) return forcedEvent;
+      const forced = getEventById(state.queue.shift());
+      if (eventMatchesContext(state, forced)) return forced;
     }
 
-    const stage = getStage(state.day);
-    const keyChance = stage <= 2 ? 0.34 : stage === 3 ? 0.42 : stage === 4 ? 0.52 : 0.62;
-    const keyPool = data.events.filter(e => e.isKey && isEventEligible(state, e));
-    if (keyPool.length && Math.random() < keyChance) {
-      return weightedPick(keyPool, e => computeEventWeight(state, e));
-    }
+    const pool = data.events.filter(e => eventMatchesContext(state, e));
+    if (pool.length) return weightedPick(pool, e => computeEventWeight(state, e));
 
-    let randomPool = data.events.filter(e => !e.isKey && isEventEligible(state, e));
-    if (!randomPool.length) {
-      randomPool = data.events.filter(e => !e.isKey && matchCondition(state, e.condition));
-    }
-
-    return weightedPick(randomPool, e => computeEventWeight(state, e));
-  }
-
-  function ensureSpecialContext(state, event) {
-    if (!event.special) return;
-    if (state.specialContext?.eventId === event.id) return;
-
-    if (event.special.type === "route_pick") {
-      const routes = event.special.routes || [];
-      state.specialContext = {
-        eventId: event.id,
-        safeRoute: Math.floor(Math.random() * Math.max(1, routes.length))
-      };
-      return;
-    }
-
-    state.specialContext = { eventId: event.id };
-  }
-
-  function recordEventSeen(state, event) {
-    state.currentEventId = event.id;
-    state.seenCounts[event.id] = (state.seenCounts[event.id] || 0) + 1;
-    state.lastSeenTurn[event.id] = state.turn;
-    if (event.once) state.doneOnceEvents[event.id] = true;
-
-    state.recentEvents.unshift(event.id);
-    state.recentEvents = state.recentEvents.slice(0, 7);
-
-    ensureSpecialContext(state, event);
+    return buildTemplateEvent(state);
   }
 
   function resolveChoiceOutcome(choice) {
@@ -388,175 +235,119 @@
     return weightedPick(choice.outcomes, o => o.weight || 1);
   }
 
-  function checkEnding(state) {
-    const sorted = [...data.endings].sort((a, b) => b.priority - a.priority);
-    return sorted.find(e => matchCondition(state, e.condition)) || null;
-  }
-
-  function buildChoiceView(state, event) {
-    if (event.special) return [];
-
-    return event.choices.flatMap((choice, idx) => {
-      const ok = matchCondition(state, choice.condition);
-      if (!ok && choice.hideIfLocked) return [];
-      return {
-        id: idx,
-        label: tpl(choice.label, state),
-        disabled: !ok,
-        impact: getChoiceImpactView(choice)
-      };
-    });
-  }
-
-  function collectEffectStats(map, effects, weight = 1) {
+  function collectEffectStats(map, effects, weight) {
     if (!effects?.stats) return;
     for (const [key, delta] of Object.entries(effects.stats)) {
       map[key] = (map[key] || 0) + delta * weight;
     }
   }
 
-  function getChoiceImpactView(choice) {
+  function getChoiceImpact(choice) {
     const impact = {};
     collectEffectStats(impact, choice.effects, 1);
     if (choice.outcomes?.length) {
       const total = choice.outcomes.reduce((sum, o) => sum + (o.weight || 1), 0) || 1;
-      choice.outcomes.forEach(outcome => {
-        const p = (outcome.weight || 1) / total;
-        collectEffectStats(impact, outcome.effects, p);
-      });
+      choice.outcomes.forEach(o => collectEffectStats(impact, o.effects, (o.weight || 1) / total));
     }
     return impact;
   }
 
-  function profileMeta(state) {
-    const c = getProfileDef("career", state.profile.career);
-    const b = getProfileDef("background", state.profile.background);
-    return { name: state.profile.name, careerLabel: c.label, backgroundLabel: b.label };
-  }
+  function applyDailyDecay(state) {
+    const stage = getStage(state.day);
+    const baseHunger = stage <= 2 ? 3 : stage === 3 ? 4 : 5;
+    const baseStress = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
+    const baseSupply = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
+    const baseStamina = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
 
-  function tpl(text, state) {
-    if (!text) return "";
-    const meta = profileMeta(state);
-    return String(text)
-      .replaceAll("{name}", meta.name)
-      .replaceAll("{career}", meta.careerLabel)
-      .replaceAll("{background}", meta.backgroundLabel);
-  }
+    const extraThreat = Math.floor(state.day / 15);
+    state.stats.hunger = clamp(state.stats.hunger + baseHunger + extraThreat, 0, 100);
+    state.stats.stress = clamp(state.stats.stress + baseStress + (state.stats.shelter < 40 ? 1 : 0), 0, 100);
+    state.stats.supplies = clamp(state.stats.supplies - baseSupply - (state.stats.trust < 25 ? 1 : 0), 0, 100);
+    state.stats.stamina = clamp(state.stats.stamina - baseStamina - (state.stats.hunger > 75 ? 1 : 0), 0, 100);
 
-  function getSpecialView(state, event) {
-    if (!event.special) return null;
-    const sp = event.special;
-
-    if (sp.type === "skill_check") {
-      const base = sp.baseChance || 50;
-      const chance = getSkillCheckChance(state, sp);
-      return {
-        type: sp.type,
-        title: sp.title,
-        description: tpl(sp.description, state),
-        meta: `基础成功率 ${base}% · 当前估算 ${chance}% · 使用判定 ${sp.statLabel || "综合"}`,
-        chance,
-        actionLabel: sp.actionLabel || "执行检定",
-        timerSec: sp.timerSec || 0
-      };
+    if (state.stats.supplies <= 18) {
+      state.stats.health = clamp(state.stats.health - 2, 0, 100);
+      state.stats.hunger = clamp(state.stats.hunger + 2, 0, 100);
     }
 
-    if (sp.type === "route_pick") {
-      return {
-        type: sp.type,
-        title: sp.title,
-        description: tpl(sp.description, state),
-        meta: "从三条路线中选一条，只有一条是安全线。",
-        routes: sp.routes || [],
-        actionLabel: sp.actionLabel || "确认路线",
-        timerSec: sp.timerSec || 0
-      };
+    if (state.stats.stress >= 80) {
+      state.stats.trust = clamp(state.stats.trust - 2, 0, 100);
+      state.stats.health = clamp(state.stats.health - 1, 0, 100);
     }
 
-    return null;
+    if (state.stats.hunger >= 85) state.stats.health = clamp(state.stats.health - 2, 0, 100);
+    if (state.stats.infection >= 65) state.stats.health = clamp(state.stats.health - 2, 0, 100);
+
+    if (state.day >= 20) {
+      state.stats.infection = clamp(state.stats.infection + (Math.random() < 0.42 ? 1 : 0), 0, 100);
+    }
   }
 
   function settleTurn(state, event, actionLabel, result) {
     state.lastResult = result;
-    state.log.unshift(`第${state.day}天：${tpl(event.title, state)} -> ${tpl(actionLabel, state)}。${result}`);
-    state.log = state.log.slice(0, 90);
+    const roadHint = event.roads?.[0] ? ` @${event.roads[0]}` : "";
+    state.log.unshift(`第${state.day}天${roadHint}：${tpl(event.title, state)} -> ${tpl(actionLabel, state)}。${result}`);
+    state.log = state.log.slice(0, 120);
+
+    if (!event.isTemplate) state.seenEvents[event.id] = true;
+    state.recentEvents.unshift(event.baseId || event.id);
+    state.recentEvents = state.recentEvents.slice(0, 10);
+
+    state.storyMemory.majorDecisions.unshift(`${state.day}天:${tpl(actionLabel, state)}`);
+    state.storyMemory.majorDecisions = state.storyMemory.majorDecisions.slice(0, 20);
+
+    if (event.location) {
+      state.storyMemory.routeHistory.unshift(event.location);
+      state.storyMemory.routeHistory = state.storyMemory.routeHistory.slice(0, 14);
+    }
 
     state.turn += 1;
     state.day += 1;
-    applyPassiveDecay(state);
+    applyDailyDecay(state);
 
-    state.currentEventId = null;
-    state.specialContext = null;
-  }
-
-  function getSkillCheckChance(state, special) {
-    const base = special.baseChance || 50;
-    const statValue = readStat(state, special.stat || "health");
-
-    let chance = base;
-    if (special.stat === "stress" || special.stat === "infection" || special.stat === "noise" || special.stat === "hunger") {
-      chance += (55 - statValue) * 0.45;
-    } else {
-      chance += (statValue - 50) * 0.35;
+    if (state.day > state.bestDays) {
+      state.bestDays = state.day;
+      localStorage.setItem("zombie_survival_best_days", String(state.bestDays));
     }
 
-    if (state.flags.career_medic && special.careerBoost === "medic") chance += 12;
-    if (state.flags.career_scout && special.careerBoost === "scout") chance += 12;
-    if (state.flags.career_soldier && special.careerBoost === "soldier") chance += 12;
-    if (state.flags.career_engineer && special.careerBoost === "engineer") chance += 12;
-
-    if (state.flags.background_role_defender) chance += 3;
-    if (state.flags.background_role_leader) chance += 2;
-    if (state.flags.background_role_infiltrator) chance += 2;
-    if (state.flags.background_role_medic) chance += 2;
-    if (state.flags.career_magician) chance += 3;
-
-    return clamp(Math.round(chance), 8, 92);
+    state.currentEventId = null;
+    state.currentTemplate = null;
   }
 
-  function getWorldView(state) {
-    const district = DISTRICTS[(state.day + state.turn) % DISTRICTS.length];
-    const weather = WEATHER[(state.day + Math.floor(state.stats.noise / 15)) % WEATHER.length];
+  function getWorldView(state, event) {
+    const district = event?.location || data.districts[(state.day + state.turn) % data.districts.length];
+    const road = event?.roads?.[0] || data.roads[(state.day * 2 + state.turn) % data.roads.length];
     const pressure = clamp(
       Math.round(
-        state.stats.infection * 0.35 +
-        state.stats.noise * 0.3 +
-        state.stats.stress * 0.25 +
-        (100 - state.stats.shelter) * 0.1
+        state.stats.infection * 0.32 +
+        state.stats.stress * 0.26 +
+        state.stats.hunger * 0.22 +
+        (100 - state.stats.shelter) * 0.2
       ),
       0,
       100
     );
+
     return {
       district,
-      weather: weather.label,
-      weatherDesc: weather.desc,
-      pressure
+      road,
+      pressure,
+      dayRecord: state.bestDays,
+      chapter: data.meta.stages[getStage(state.day)]
     };
+  }
+
+  function checkEnding(state) {
+    const sorted = [...data.endings].sort((a, b) => b.priority - a.priority);
+    return sorted.find(e => matchEndingCondition(state, e.condition)) || null;
   }
 
   const game = {
     state: createStore(),
 
-    getProfileOptions() {
-      return deepClone(data.profiles);
-    },
-
-    getTactics() {
-      return Object.values(TACTICS);
-    },
-
-    setTactic(id) {
-      if (!TACTICS[id]) return false;
-      this.state.tactic = id;
-      return true;
-    },
-
     start(profileInput) {
       this.state = createStore(profileInput);
-      const c = getProfileDef("career", this.state.profile.career);
-      const b = getProfileDef("background", this.state.profile.background);
-      this.state.lastResult = `${this.state.profile.name}，${c.label}，${b.label}。我在电台杂音里确认了一件事: 今天必须活下去。`;
+      this.state.lastResult = `${this.state.profile.name}，普通上海市民。通信中断前最后一条语音里只剩一句: 别等系统恢复，先活下来。`;
       this.state.log.unshift(`第1天：${this.state.lastResult}`);
       return this.getCurrentView(true);
     },
@@ -573,44 +364,69 @@
           stage: getStage(this.state.day),
           stageLabel: data.meta.stages[getStage(this.state.day)],
           day: this.state.day,
+          category: "终局",
+          sceneTheme: "zombie",
           title: tpl(ending.title, this.state),
-          body: tpl(ending.text, this.state),
+          body: `${tpl(ending.text, this.state)}\n\n生存天数: ${this.state.day}天\n历史最高: ${this.state.bestDays}天`,
           result: "",
-          special: null,
-          choices: [{ id: "restart", label: "重新开始", disabled: false }],
+          choices: [{ id: "restart", label: "重新挑战", disabled: false, impact: {} }],
           stats: this.state.stats,
           profile: profileMeta(this.state),
           log: this.state.log,
-          tactic: this.state.tactic,
-          tactics: this.getTactics(),
-          world: getWorldView(this.state)
+          world: getWorldView(this.state, null)
         };
       }
 
-      let event = getEventById(this.state.currentEventId);
+      let event = null;
+
+      if (!forceNewEvent && this.state.currentEventId) {
+        event = getEventById(this.state.currentEventId);
+      }
+
+      if (!forceNewEvent && !event && this.state.currentTemplate) {
+        event = this.state.currentTemplate;
+      }
+
       if (forceNewEvent || !event) {
         event = pickNextEvent(this.state);
         if (!event) {
-          return {
-            ended: true,
-            stage: getStage(this.state.day),
-            stageLabel: data.meta.stages[getStage(this.state.day)],
-            day: this.state.day,
-            title: "结局：信号中断",
-            body: "没有新的线路，也没有新的冒险。故事在沉默里停住了。",
-            result: "",
-            special: null,
-            choices: [{ id: "restart", label: "重新开始", disabled: false }],
-            stats: this.state.stats,
-            profile: profileMeta(this.state),
-            log: this.state.log,
-            tactic: this.state.tactic,
-            tactics: this.getTactics(),
-            world: getWorldView(this.state)
-          };
+          event = buildTemplateEvent(this.state);
         }
-        recordEventSeen(this.state, event);
+        if (event?.isTemplate) {
+          this.state.currentTemplate = event;
+          this.state.currentEventId = null;
+        } else {
+          this.state.currentEventId = event?.id || null;
+          this.state.currentTemplate = null;
+        }
       }
+
+      if (!event) {
+        return {
+          ended: true,
+          stage: getStage(this.state.day),
+          stageLabel: data.meta.stages[getStage(this.state.day)],
+          day: this.state.day,
+          category: "终局",
+          sceneTheme: "signal",
+          title: "结局：信号彻底沉默",
+          body: "没有新的事件可触发，城市像被剪断了时间线。",
+          result: "",
+          choices: [{ id: "restart", label: "重新挑战", disabled: false, impact: {} }],
+          stats: this.state.stats,
+          profile: profileMeta(this.state),
+          log: this.state.log,
+          world: getWorldView(this.state, null)
+        };
+      }
+
+      const sceneMap = {
+        崩溃初期: "combat",
+        封锁裂解: "moral",
+        组织重构: "bond",
+        高压消耗: "scavenge",
+        长期求生: "shelter"
+      };
 
       return {
         ended: false,
@@ -619,28 +435,29 @@
         day: this.state.day,
         eventId: event.id,
         category: event.category || "未知",
-        sceneTheme: SCENE_THEMES[event.category] || "neutral",
+        sceneTheme: sceneMap[event.category] || "neutral",
         title: `第${this.state.day}天 · ${tpl(event.title, this.state)}`,
-        body: tpl(event.body, this.state),
+        body: `${tpl(event.body, this.state)}\n\n地点: ${event.location || "未知片区"}${event.roads?.length ? ` · 路线: ${event.roads.join(" / ")}` : ""}`,
         result: this.state.lastResult || "",
-        special: getSpecialView(this.state, event),
-        choices: buildChoiceView(this.state, event),
+        choices: event.choices.map((choice, idx) => ({
+          id: idx,
+          label: tpl(choice.label, this.state),
+          disabled: false,
+          impact: getChoiceImpact(choice)
+        })),
         stats: this.state.stats,
         profile: profileMeta(this.state),
         log: this.state.log,
-        tactic: this.state.tactic,
-        tactics: this.getTactics(),
-        world: getWorldView(this.state)
+        world: getWorldView(this.state, event)
       };
     },
 
     choose(choiceId) {
-      const event = getEventById(this.state.currentEventId);
+      const event = this.state.currentTemplate || getEventById(this.state.currentEventId);
       if (!event) return this.getCurrentView(true);
-      if (event.special) return this.getCurrentView(false);
 
       const choice = event.choices[choiceId];
-      if (!choice || !matchCondition(this.state, choice.condition)) return this.getCurrentView(false);
+      if (!choice) return this.getCurrentView(false);
 
       applyEffects(this.state, choice.effects);
       let result = tpl(choice.result || "", this.state);
@@ -655,61 +472,6 @@
       return this.getCurrentView(true);
     },
 
-    resolveSpecial(payload) {
-      const event = getEventById(this.state.currentEventId);
-      if (!event || !event.special) return this.getCurrentView(false);
-
-      const special = event.special;
-      let result = "";
-      const timedOut = !!payload?.timeout;
-
-      if (special.type === "skill_check") {
-        if (timedOut) {
-          applyEffects(this.state, special.failEffects);
-          result = `${tpl(special.timeoutText || special.failText, this.state)}（超时）`;
-          settleTurn(this.state, event, "犹豫过久", result);
-          return this.getCurrentView(true);
-        }
-
-        const chance = getSkillCheckChance(this.state, special);
-        const roll = Math.floor(Math.random() * 100) + 1;
-        const success = roll <= chance;
-        if (success) {
-          applyEffects(this.state, special.successEffects);
-          result = `${tpl(special.successText, this.state)}（检定 ${roll}/${chance}）`;
-        } else {
-          applyEffects(this.state, special.failEffects);
-          result = `${tpl(special.failText, this.state)}（检定 ${roll}/${chance}）`;
-        }
-        settleTurn(this.state, event, special.actionLabel || "执行检定", result);
-        return this.getCurrentView(true);
-      }
-
-      if (special.type === "route_pick") {
-        if (timedOut) {
-          applyEffects(this.state, special.failEffects);
-          result = `${tpl(special.timeoutText || special.failText, this.state)}（超时）`;
-          settleTurn(this.state, event, "错过路线窗口", result);
-          return this.getCurrentView(true);
-        }
-
-        const idx = Number(payload?.routeIndex);
-        const safe = this.state.specialContext?.safeRoute ?? -1;
-        const selectedLabel = special.routes?.[idx] || "未知路线";
-        if (idx === safe) {
-          applyEffects(this.state, special.successEffects);
-          result = `${tpl(special.successText, this.state)}（选择: ${selectedLabel}）`;
-        } else {
-          applyEffects(this.state, special.failEffects);
-          result = `${tpl(special.failText, this.state)}（选择: ${selectedLabel}）`;
-        }
-        settleTurn(this.state, event, `路线抉择: ${selectedLabel}`, result);
-        return this.getCurrentView(true);
-      }
-
-      return this.getCurrentView(false);
-    },
-
     save() {
       localStorage.setItem(SAVE_KEY, JSON.stringify(this.state));
       return "存档已写入本地。";
@@ -718,15 +480,16 @@
     load() {
       let raw = localStorage.getItem(SAVE_KEY);
       if (!raw) {
-        for (const legacyKey of LEGACY_SAVE_KEYS) {
-          raw = localStorage.getItem(legacyKey);
+        for (const key of LEGACY_SAVE_KEYS) {
+          raw = localStorage.getItem(key);
           if (raw) break;
         }
       }
+
       if (!raw) return { ok: false, message: "没有可读取的存档。" };
+
       try {
-        const parsed = JSON.parse(raw);
-        this.state = normalizeState(parsed);
+        this.state = normalizeState(JSON.parse(raw));
         return { ok: true, message: "存档读取成功。" };
       } catch (_) {
         return { ok: false, message: "存档损坏，读取失败。" };
