@@ -2,6 +2,30 @@
   const SAVE_KEY = "zombie_choice_save_v3";
   const LEGACY_SAVE_KEYS = ["zombie_choice_save_v2"];
   const data = window.GAME_DATA;
+  const TACTICS = {
+    stealth: { id: "stealth", label: "潜行", desc: "更低噪音，战斗压低，资源增长变慢。" },
+    balanced: { id: "balanced", label: "均衡", desc: "默认策略，不偏不倚。" },
+    assault: { id: "assault", label: "强攻", desc: "高风险高回报，更容易卷入冲突。" }
+  };
+  const DISTRICTS = ["旧城区", "仓储区", "滨河高架", "工业走廊", "天线坡道", "商业废墟"];
+  const WEATHER = [
+    { key: "mist", label: "酸雾", desc: "视距下降，脚步声被放大。" },
+    { key: "rain", label: "冷雨", desc: "噪声扩散变慢，体力流失更快。" },
+    { key: "dry", label: "干燥热浪", desc: "脱水风险上升，感染波动变大。" },
+    { key: "wind", label: "逆风", desc: "广播信号不稳，气味扩散更远。" }
+  ];
+  const SCENE_THEMES = {
+    战斗: "combat",
+    冲突: "combat",
+    探索: "scavenge",
+    交易: "trade",
+    同伴互动: "bond",
+    庇护所管理: "shelter",
+    道德困境: "moral",
+    特殊事件: "signal",
+    职业专属: "craft",
+    丧尸分支: "zombie"
+  };
 
   function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
@@ -139,6 +163,7 @@
       currentEventId: null,
       queue: [],
       log: [],
+      tactic: "balanced",
       seenCounts: {},
       lastSeenTurn: {},
       doneOnceEvents: {},
@@ -162,6 +187,7 @@
       profile: { ...seeded.profile, ...(raw.profile || {}) },
       queue: Array.isArray(raw.queue) ? raw.queue : [],
       log: Array.isArray(raw.log) ? raw.log : [],
+      tactic: raw.tactic || "balanced",
       seenCounts: raw.seenCounts || {},
       lastSeenTurn: raw.lastSeenTurn || {},
       doneOnceEvents: raw.doneOnceEvents || {},
@@ -202,6 +228,17 @@
     if (state.stats.hunger >= 80) state.stats.health = clamp(state.stats.health - 2, 0, 100);
     if (state.stats.stress >= 80) state.stats.humanity = clamp(state.stats.humanity - 2, 0, 100);
     if (state.stats.noise >= 75) state.stats.stress = clamp(state.stats.stress + 3, 0, 100);
+
+    if (state.tactic === "stealth") {
+      state.stats.noise = clamp(state.stats.noise - 3, 0, 100);
+      state.stats.stress = clamp(state.stats.stress + 1, 0, 100);
+      state.stats.supplies = clamp(state.stats.supplies - 1, 0, 100);
+    } else if (state.tactic === "assault") {
+      state.stats.noise = clamp(state.stats.noise + 4, 0, 100);
+      state.stats.stress = clamp(state.stats.stress + 2, 0, 100);
+      state.stats.ammo = clamp(state.stats.ammo - 2, 0, 100);
+      state.stats.supplies = clamp(state.stats.supplies + 1, 0, 100);
+    }
   }
 
   function applyEffects(state, effects) {
@@ -275,6 +312,14 @@
     if (state.flags.zombified) {
       if (event.category === "丧尸分支") w *= 2.4;
       if (event.category === "职业专属" || event.category === "同伴互动") w *= 0.85;
+    }
+
+    if (state.tactic === "stealth") {
+      if (event.category === "战斗" || event.category === "冲突") w *= 0.8;
+      if (event.category === "探索" || event.category === "交易") w *= 1.12;
+    } else if (state.tactic === "assault") {
+      if (event.category === "战斗" || event.category === "冲突") w *= 1.22;
+      if (event.category === "探索" || event.category === "交易") w *= 0.92;
     }
 
     if (event.isKey && stage >= 4 && !state.doneOnceEvents[event.id]) w *= 1.25;
@@ -357,9 +402,30 @@
       return {
         id: idx,
         label: tpl(choice.label, state),
-        disabled: !ok
+        disabled: !ok,
+        impact: getChoiceImpactView(choice)
       };
     });
+  }
+
+  function collectEffectStats(map, effects, weight = 1) {
+    if (!effects?.stats) return;
+    for (const [key, delta] of Object.entries(effects.stats)) {
+      map[key] = (map[key] || 0) + delta * weight;
+    }
+  }
+
+  function getChoiceImpactView(choice) {
+    const impact = {};
+    collectEffectStats(impact, choice.effects, 1);
+    if (choice.outcomes?.length) {
+      const total = choice.outcomes.reduce((sum, o) => sum + (o.weight || 1), 0) || 1;
+      choice.outcomes.forEach(outcome => {
+        const p = (outcome.weight || 1) / total;
+        collectEffectStats(impact, outcome.effects, p);
+      });
+    }
+    return impact;
   }
 
   function profileMeta(state) {
@@ -383,11 +449,13 @@
 
     if (sp.type === "skill_check") {
       const base = sp.baseChance || 50;
+      const chance = getSkillCheckChance(state, sp);
       return {
         type: sp.type,
         title: sp.title,
         description: tpl(sp.description, state),
-        meta: `基础成功率 ${base}% · 使用判定 ${sp.statLabel || "综合"}`,
+        meta: `基础成功率 ${base}% · 当前估算 ${chance}% · 使用判定 ${sp.statLabel || "综合"}`,
+        chance,
         actionLabel: sp.actionLabel || "执行检定",
         timerSec: sp.timerSec || 0
       };
@@ -446,11 +514,42 @@
     return clamp(Math.round(chance), 8, 92);
   }
 
+  function getWorldView(state) {
+    const district = DISTRICTS[(state.day + state.turn) % DISTRICTS.length];
+    const weather = WEATHER[(state.day + Math.floor(state.stats.noise / 15)) % WEATHER.length];
+    const pressure = clamp(
+      Math.round(
+        state.stats.infection * 0.35 +
+        state.stats.noise * 0.3 +
+        state.stats.stress * 0.25 +
+        (100 - state.stats.shelter) * 0.1
+      ),
+      0,
+      100
+    );
+    return {
+      district,
+      weather: weather.label,
+      weatherDesc: weather.desc,
+      pressure
+    };
+  }
+
   const game = {
     state: createStore(),
 
     getProfileOptions() {
       return deepClone(data.profiles);
+    },
+
+    getTactics() {
+      return Object.values(TACTICS);
+    },
+
+    setTactic(id) {
+      if (!TACTICS[id]) return false;
+      this.state.tactic = id;
+      return true;
     },
 
     start(profileInput) {
@@ -481,7 +580,10 @@
           choices: [{ id: "restart", label: "重新开始", disabled: false }],
           stats: this.state.stats,
           profile: profileMeta(this.state),
-          log: this.state.log
+          log: this.state.log,
+          tactic: this.state.tactic,
+          tactics: this.getTactics(),
+          world: getWorldView(this.state)
         };
       }
 
@@ -501,7 +603,10 @@
             choices: [{ id: "restart", label: "重新开始", disabled: false }],
             stats: this.state.stats,
             profile: profileMeta(this.state),
-            log: this.state.log
+            log: this.state.log,
+            tactic: this.state.tactic,
+            tactics: this.getTactics(),
+            world: getWorldView(this.state)
           };
         }
         recordEventSeen(this.state, event);
@@ -513,6 +618,8 @@
         stageLabel: data.meta.stages[getStage(this.state.day)],
         day: this.state.day,
         eventId: event.id,
+        category: event.category || "未知",
+        sceneTheme: SCENE_THEMES[event.category] || "neutral",
         title: `第${this.state.day}天 · ${tpl(event.title, this.state)}`,
         body: tpl(event.body, this.state),
         result: this.state.lastResult || "",
@@ -520,7 +627,10 @@
         choices: buildChoiceView(this.state, event),
         stats: this.state.stats,
         profile: profileMeta(this.state),
-        log: this.state.log
+        log: this.state.log,
+        tactic: this.state.tactic,
+        tactics: this.getTactics(),
+        world: getWorldView(this.state)
       };
     },
 
