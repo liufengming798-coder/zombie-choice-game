@@ -39,7 +39,7 @@
   const sceneLabelEl = document.getElementById("scene-label");
 
   const statLabelMap = Object.fromEntries((data.statDefs || []).map(s => [s.key, s.label]));
-  const ASSET_VER = "20260305b";
+  const ASSET_VER = "20260305c";
   const withVer = path => `${path}?v=${ASSET_VER}`;
   const statIconMap = {
     health: withVer("assets/icons/heart-pulse.svg"),
