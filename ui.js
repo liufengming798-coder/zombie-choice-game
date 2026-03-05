@@ -203,7 +203,7 @@
     const world = view.world || {};
     worldDistrictEl.innerHTML = `<img src="${chipIconMap.district}" alt="" class="mini-icon" />区域: ${world.district || "未知"}`;
     worldRoadEl.innerHTML = `<img src="${chipIconMap.road}" alt="" class="mini-icon" />道路: ${world.road || "未知"}`;
-    worldRecordEl.innerHTML = `<img src="${chipIconMap.record}" alt="" class="mini-icon" />纪录: ${Math.round(world.dayRecord || view.day || 0)}天`;
+    worldRecordEl.innerHTML = `<img src="${chipIconMap.record}" alt="" class="mini-icon" />纪录: ${Math.round(world.dayRecord || view.day || 0)}天 · ${world.arcLabel || "未定路线"}`;
     worldPressureEl.innerHTML = `<img src="${chipIconMap.pressure}" alt="" class="mini-icon" />威胁: ${Math.round(world.pressure || 0)}`;
 
     if ((world.pressure || 0) >= 78) playUiSound("danger");
@@ -235,6 +235,13 @@
       npcChip.className = "hero-chip";
       npcChip.innerHTML = `<img src="${withVer("assets/icons/users.svg")}" alt="" class="mini-icon" />关系焦点: ${view.world.focalNpc}`;
       eventHeroMetaEl.appendChild(npcChip);
+    }
+
+    if (view.world?.arcLabel) {
+      const arcChip = document.createElement("span");
+      arcChip.className = "hero-chip";
+      arcChip.innerHTML = `<img src="${withVer("assets/icons/route.svg")}" alt="" class="mini-icon" />路线: ${view.world.arcLabel}`;
+      eventHeroMetaEl.appendChild(arcChip);
     }
   }
 

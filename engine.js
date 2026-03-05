@@ -2,6 +2,7 @@
   const SAVE_KEY = "zombie_choice_save_v5";
   const LEGACY_SAVE_KEYS = ["zombie_choice_save_v4", "zombie_choice_save_v3", "zombie_choice_save_v2"];
   const data = window.GAME_DATA;
+  const MILESTONE_DAYS = [12, 24, 36, 48];
 
   function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
@@ -106,6 +107,11 @@
         routeHistory: [],
         decisionTags: []
       },
+      arc: {
+        path: null,
+        milestonesDone: {},
+        volatility: 0
+      },
       npcRelations: makeInitialNpcRelations(),
       bestDays
     };
@@ -138,6 +144,7 @@
       seenEvents: raw.seenEvents || {},
       recentEvents: Array.isArray(raw.recentEvents) ? raw.recentEvents : [],
       storyMemory: raw.storyMemory || { majorDecisions: [], routeHistory: [], decisionTags: [] },
+      arc: raw.arc || { path: null, milestonesDone: {}, volatility: 0 },
       npcRelations: { ...seeded.npcRelations, ...(raw.npcRelations || {}) },
       bestDays: Number(raw.bestDays || seeded.bestDays || 0)
     };
@@ -314,6 +321,9 @@
   }
 
   function pickNextEvent(state) {
+    const milestone = buildMilestoneEvent(state);
+    if (milestone) return milestone;
+
     if (state.queue.length > 0) {
       const queuedId = state.queue.shift();
       const forced = getEventById(queuedId);
@@ -381,20 +391,149 @@
     return { stats, npcs: npcImpact };
   }
 
+  function getArcLabel(path) {
+    const labels = {
+      mutual_aid: "互助路线",
+      hardline: "铁壁路线",
+      mobile_net: "机动网络路线",
+      signal_hunt: "信号追踪路线"
+    };
+    return labels[path] || "未定";
+  }
+
+  function assessChoiceRisk(choice, event) {
+    const text = `${choice.label} ${choice.result || ""}`;
+    let risk = 42;
+    if (/强夺|硬守|炸毁|对抗|清算|报复|冲突|突击/.test(text)) risk += 20;
+    if (/公开|协同|分配|护送|复盘|调停/.test(text)) risk -= 10;
+    if (event.category === "高压消耗") risk += 12;
+    if (event.category === "长期求生") risk -= 5;
+    return clamp(risk, 15, 88);
+  }
+
+  function applyChoiceVariance(state, event, choice) {
+    const risk = assessChoiceRisk(choice, event);
+    const resilience = (
+      state.stats.health * 0.25 +
+      state.stats.stamina * 0.25 +
+      state.stats.trust * 0.2 +
+      state.stats.shelter * 0.15 +
+      (100 - state.stats.stress) * 0.15
+    );
+    const relationBoost = event.npcId ? ((state.npcRelations[event.npcId] ?? 50) - 50) * 0.35 : 0;
+    const successChance = clamp(Math.round(resilience * 0.7 - risk + relationBoost), 12, 92);
+    const roll = Math.floor(Math.random() * 100) + 1;
+    const success = roll <= successChance;
+
+    if (success) {
+      state.arc.volatility = clamp((state.arc.volatility || 0) - 3, 0, 100);
+      return { success: true, suffix: `（行动检定 ${roll}/${successChance} · 成功）` };
+    }
+
+    const penalty = {
+      stats: {
+        health: -clamp(Math.round((risk - 30) / 14), 1, 5),
+        stress: clamp(Math.round(risk / 18), 2, 8),
+        stamina: -clamp(Math.round((risk - 20) / 16), 1, 5),
+        trust: -clamp(Math.round((risk - 25) / 20), 1, 4)
+      }
+    };
+    applyEffects(state, penalty);
+    state.arc.volatility = clamp((state.arc.volatility || 0) + 8, 0, 100);
+    return { success: false, suffix: `（行动检定 ${roll}/${successChance} · 失误）` };
+  }
+
+  function buildMilestoneEvent(state) {
+    const day = state.day;
+    if (!MILESTONE_DAYS.includes(day)) return null;
+    if (state.arc.milestonesDone?.[day]) return null;
+
+    return {
+      id: `milestone_${day}`,
+      isMilestone: true,
+      category: "长期求生",
+      title: `生存里程碑 · 第${day}天`,
+      body: "你们必须确定下一阶段战略，否则队伍会在争论中内耗殆尽。",
+      location: "桂果园8号楼作战会议室",
+      roads: ["桂平路", "桂林路"],
+      choices: [
+        {
+          label: "确立互助分配制度（稳态）",
+          result: "你把配给和轮班公开，社区粘性显著上升。",
+          effects: { stats: { trust: 10, shelter: 6, supplies: -3, stress: -2 }, flagsSet: { hasCommunity: true }, decisionTagsAdd: ["arc_mutual_aid"] }
+        },
+        {
+          label: "确立铁壁守线制度（防御）",
+          result: "你们收缩边界并强化工事，短期安全提升。",
+          effects: { stats: { shelter: 12, stamina: -2, trust: -2, stress: 1 }, decisionTagsAdd: ["arc_hardline"] }
+        },
+        {
+          label: "确立机动网络制度（游击）",
+          result: "固定据点缩小，外勤路线扩张，波动更大但机会更多。",
+          effects: { stats: { stamina: 8, supplies: 5, shelter: -5, stress: 2 }, decisionTagsAdd: ["arc_mobile_net"] }
+        },
+        {
+          label: "确立信号追踪制度（情报）",
+          result: "你们把精力集中在监听与路由，信息优势提升。",
+          effects: { stats: { supplies: 4, stress: -1, trust: 3 }, flagsSet: { hasRadio: true, metroCodeKnown: true }, decisionTagsAdd: ["arc_signal_hunt"] }
+        }
+      ]
+    };
+  }
+
+  function checkDynamicEnding(state) {
+    if (state.day < 40) return null;
+    const allies = getNpcView(state).filter(n => n.value >= 68).length;
+    const stable = state.stats.health >= 46 && state.stats.trust >= 50 && state.stats.shelter >= 52;
+    if (!stable) return null;
+
+    const arc = state.arc.path;
+    if (arc === "mutual_aid" && allies >= 2) {
+      return {
+        title: "结局：互助共同体",
+        text: "你把桂果园8号楼从求生据点带成了可持续社区。它不再只是躲避危险的壳，而是能产出秩序的节点。"
+      };
+    }
+    if (arc === "hardline" && state.stats.shelter >= 70) {
+      return {
+        title: "结局：铁壁防线",
+        text: "你用纪律和工事把走廊变成了边界。代价不小，但你们确实挺到了新的稳定期。"
+      };
+    }
+    if (arc === "mobile_net" && state.stats.stamina >= 55) {
+      return {
+        title: "结局：机动生存网",
+        text: "你把零散小队织成了可切换的网络。没有绝对安全点，却也几乎没有单点崩溃。"
+      };
+    }
+    if (arc === "signal_hunt" && state.flags.hasRadio) {
+      return {
+        title: "结局：信号猎手",
+        text: "你们靠监听与反监听建立了信息优势，在漕河泾废墟里抢先半步活了下来。"
+      };
+    }
+    return null;
+  }
+
   function applyDailyDecay(state) {
     const stage = getStage(state.day);
-    const baseHunger = stage <= 2 ? 3 : stage === 3 ? 4 : 5;
-    const baseStress = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
-    const baseSupply = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
-    const baseStamina = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
-    const extraThreat = Math.floor(state.day / 16);
+    const baseHunger = stage <= 2 ? 2 : stage === 3 ? 3 : 4;
+    const baseStress = stage <= 2 ? 1 : stage === 3 ? 2 : 3;
+    const baseSupply = stage <= 2 ? 2 : stage === 3 ? 2 : 3;
+    const baseStamina = stage <= 2 ? 1 : stage === 3 ? 2 : 3;
+    const extraThreat = Math.floor(state.day / 20);
 
     state.stats.hunger = clamp(state.stats.hunger + baseHunger + extraThreat, 0, 100);
     state.stats.stress = clamp(state.stats.stress + baseStress + (state.stats.shelter < 40 ? 1 : 0), 0, 100);
     state.stats.supplies = clamp(state.stats.supplies - baseSupply - (state.stats.trust < 25 ? 1 : 0), 0, 100);
     state.stats.stamina = clamp(state.stats.stamina - baseStamina - (state.stats.hunger > 75 ? 1 : 0), 0, 100);
 
-    if (state.stats.supplies <= 16) {
+    if (state.flags.hasCommunity) {
+      state.stats.stress = clamp(state.stats.stress - 1, 0, 100);
+      state.stats.trust = clamp(state.stats.trust + 1, 0, 100);
+    }
+
+    if (state.stats.supplies <= 12) {
       state.stats.health = clamp(state.stats.health - 2, 0, 100);
       state.stats.hunger = clamp(state.stats.hunger + 2, 0, 100);
     }
@@ -406,7 +545,7 @@
 
     if (state.stats.hunger >= 85) state.stats.health = clamp(state.stats.health - 2, 0, 100);
     if (state.stats.infection >= 65) state.stats.health = clamp(state.stats.health - 2, 0, 100);
-    if (state.day >= 22) state.stats.infection = clamp(state.stats.infection + (Math.random() < 0.44 ? 1 : 0), 0, 100);
+    if (state.day >= 30) state.stats.infection = clamp(state.stats.infection + (Math.random() < 0.28 ? 1 : 0), 0, 100);
   }
 
   function settleTurn(state, event, actionLabel, result) {
@@ -416,6 +555,7 @@
     state.log = state.log.slice(0, 140);
 
     if (!event.isTemplate) state.seenEvents[event.id] = true;
+    if (event.isMilestone) state.arc.milestonesDone[state.day] = true;
     state.recentEvents.unshift(event.baseId || event.id);
     state.recentEvents = state.recentEvents.slice(0, 12);
 
@@ -430,6 +570,11 @@
     state.turn += 1;
     state.day += 1;
     applyDailyDecay(state);
+
+    if (state.day % 10 === 0) {
+      // 每10天给一点恢复，避免体验陷入“必死线性结局”
+      applyEffects(state, { stats: { health: 2, stress: -2, trust: 1 } });
+    }
 
     if (state.day > state.bestDays) {
       state.bestDays = state.day;
@@ -484,13 +629,25 @@
       pressure,
       dayRecord: state.bestDays,
       chapter: data.meta.stages[getStage(state.day)],
-      focalNpc: npcs[0]?.name || "-"
+      focalNpc: npcs[0]?.name || "-",
+      arcLabel: getArcLabel(state.arc.path)
     };
   }
 
   function checkEnding(state) {
     const sorted = [...data.endings].sort((a, b) => b.priority - a.priority);
-    return sorted.find(e => matchEndingCondition(state, e.condition)) || null;
+    const failure = sorted.find(e => matchEndingCondition(state, e.condition)) || null;
+    if (failure) return failure;
+
+    const dynamic = checkDynamicEnding(state);
+    if (dynamic) {
+      return {
+        id: `dynamic_${state.arc.path || "generic"}`,
+        title: dynamic.title,
+        text: `${dynamic.text}\n\n路线评价: ${getArcLabel(state.arc.path)} · 波动值 ${state.arc.volatility}`
+      };
+    }
+    return null;
   }
 
   const sceneMap = {
@@ -551,7 +708,7 @@
         event = pickNextEvent(this.state);
         if (!event) event = buildTemplateEvent(this.state);
 
-        if (event?.isTemplate) {
+        if (event?.isTemplate || event?.isMilestone) {
           this.state.currentTemplate = event;
           this.state.currentEventId = null;
         } else {
@@ -617,6 +774,16 @@
 
       applyEffects(this.state, choice.effects);
       let result = tpl(choice.result || "", this.state);
+
+      if (event.isMilestone) {
+        if (/互助/.test(choice.label)) this.state.arc.path = "mutual_aid";
+        else if (/铁壁|守线/.test(choice.label)) this.state.arc.path = "hardline";
+        else if (/机动/.test(choice.label)) this.state.arc.path = "mobile_net";
+        else if (/信号|监听/.test(choice.label)) this.state.arc.path = "signal_hunt";
+      }
+
+      const variance = applyChoiceVariance(this.state, event, choice);
+      result = `${result}${variance.suffix}`;
 
       const outcome = resolveChoiceOutcome(choice);
       if (outcome) {
