@@ -66,6 +66,16 @@
     signal: "assets/images/shanghai-skyline-cc0.jpg",
     neutral: "assets/images/shanghai-skyline-cc0.jpg"
   };
+  const chipIconMap = {
+    district: "assets/icons/map-pin.svg",
+    road: "assets/icons/route.svg",
+    record: "assets/icons/antenna-bars-5.svg",
+    pressure: "assets/icons/warning-triangle.svg",
+    stage: "assets/icons/shield.svg",
+    category: "assets/icons/flame.svg",
+    bond: "assets/icons/users.svg",
+    risk: "assets/icons/lock-open.svg"
+  };
 
   let latestView = null;
   let audioCtx = null;
@@ -182,16 +192,16 @@
   function renderIdentity(profile) {
     identityNameEl.textContent = `身份: ${profile?.name || "未命名"}（${profile?.citizenTag || "市民"}）`;
     identityStatusEl.textContent = `状态: ${profile?.statusLabel || "-"}`;
-    identityBondEl.textContent = `盟友: ${profile?.topBond || "-"}`;
-    identityRiskEl.textContent = `紧张关系: ${profile?.lowBond || "-"}`;
+    identityBondEl.innerHTML = `<img src="${chipIconMap.bond}" alt="" class="mini-icon" />盟友: ${profile?.topBond || "-"}`;
+    identityRiskEl.innerHTML = `<img src="${chipIconMap.risk}" alt="" class="mini-icon" />紧张关系: ${profile?.lowBond || "-"}`;
   }
 
   function renderWorld(view) {
     const world = view.world || {};
-    worldDistrictEl.textContent = `区域: ${world.district || "未知"}`;
-    worldRoadEl.textContent = `道路: ${world.road || "未知"}`;
-    worldRecordEl.textContent = `纪录: ${Math.round(world.dayRecord || view.day || 0)}天`;
-    worldPressureEl.textContent = `威胁: ${Math.round(world.pressure || 0)}`;
+    worldDistrictEl.innerHTML = `<img src="${chipIconMap.district}" alt="" class="mini-icon" />区域: ${world.district || "未知"}`;
+    worldRoadEl.innerHTML = `<img src="${chipIconMap.road}" alt="" class="mini-icon" />道路: ${world.road || "未知"}`;
+    worldRecordEl.innerHTML = `<img src="${chipIconMap.record}" alt="" class="mini-icon" />纪录: ${Math.round(world.dayRecord || view.day || 0)}天`;
+    worldPressureEl.innerHTML = `<img src="${chipIconMap.pressure}" alt="" class="mini-icon" />威胁: ${Math.round(world.pressure || 0)}`;
 
     if ((world.pressure || 0) >= 78) playUiSound("danger");
   }
@@ -216,6 +226,13 @@
     dayChip.className = "hero-chip";
     dayChip.innerHTML = `<img src="assets/icons/map-pin.svg" alt="" class="mini-icon" />第${view.day}天`;
     eventHeroMetaEl.appendChild(dayChip);
+
+    if (view.world?.focalNpc) {
+      const npcChip = document.createElement("span");
+      npcChip.className = "hero-chip";
+      npcChip.innerHTML = `<img src="assets/icons/users.svg" alt="" class="mini-icon" />关系焦点: ${view.world.focalNpc}`;
+      eventHeroMetaEl.appendChild(npcChip);
+    }
   }
 
   function renderImpactPills(impact, wrap) {
@@ -349,8 +366,8 @@
   function render(view) {
     latestView = view;
 
-    stageEl.textContent = `${view.stageLabel} | 第${view.day}天`;
-    categoryEl.textContent = `事件类型: ${view.category || "未知"}`;
+    stageEl.innerHTML = `<img src="${chipIconMap.stage}" alt="" class="mini-icon" />${view.stageLabel} · 第${view.day}天`;
+    categoryEl.innerHTML = `<img src="${chipIconMap.category}" alt="" class="mini-icon" />事件类型: ${view.category || "未知"}`;
     titleEl.textContent = view.title;
     bodyEl.textContent = view.body;
     resultEl.textContent = view.result || "";

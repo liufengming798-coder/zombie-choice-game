@@ -87,8 +87,15 @@ body {
   background: #1a2b40;
   color: #d5e3f2;
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 0 12px;
+  min-height: 34px;
+  min-width: 124px;
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
 }
 
 .world-chip.danger {
@@ -139,6 +146,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
 }
 
 .chip {
@@ -146,18 +154,29 @@ body {
   border-radius: 999px;
   background: var(--chip);
   color: #d5deea;
-  padding: 6px 10px;
+  padding: 0 12px;
+  min-height: 34px;
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  line-height: 1.1;
 }
 
 .chip.stage {
   border-color: #8a6447;
   color: #ffd8ad;
+  min-width: 176px;
+  font-weight: 600;
 }
 
 .chip.category {
   border-color: #486f82;
   color: #bfe8ff;
+  min-width: 154px;
+  font-weight: 600;
 }
 
 .battlefield-grid {
@@ -271,12 +290,23 @@ body {
   margin: 0;
   font-size: 30px;
   line-height: 1.2;
+  text-align: center;
+  position: relative;
 }
 
 .scene-sub {
   margin-top: 8px;
   color: #c7d4df;
   font-size: 12px;
+  text-align: center;
+}
+
+.scene-header h2::before,
+.scene-header h2::after {
+  content: "✶";
+  color: rgba(203, 225, 245, 0.65);
+  font-size: 16px;
+  margin: 0 10px;
 }
 
 .event-hero {
@@ -380,11 +410,36 @@ kbd {
   user-select: none;
   cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(205, 176, 118, 0.1);
+  position: relative;
 }
 
 .choice-card:hover {
   transform: translateY(-2px) rotate(-0.5deg);
   border-color: #87abc6;
+}
+
+.choice-card::before,
+.choice-card::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(214, 184, 123, 0.28);
+  pointer-events: none;
+}
+
+.choice-card::before {
+  left: 6px;
+  top: 6px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.choice-card::after {
+  right: 6px;
+  bottom: 6px;
+  border-left: none;
+  border-top: none;
 }
 
 .choice-card.disabled {
