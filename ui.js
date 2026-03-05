@@ -24,6 +24,7 @@
   const setupEl = document.getElementById("setup-screen");
   const premiseEl = document.getElementById("premise-text");
   const nameInput = document.getElementById("player-name");
+  const roleSelect = document.getElementById("player-role");
   const previewEl = document.getElementById("profile-preview");
   const startBtn = document.getElementById("btn-start");
 
@@ -192,8 +193,8 @@
   }
 
   function renderIdentity(profile) {
-    identityNameEl.textContent = `身份: ${profile?.name || "未命名"}（${profile?.citizenTag || "市民"}）`;
-    identityStatusEl.textContent = `状态: ${profile?.statusLabel || "-"}`;
+    identityNameEl.textContent = `身份: ${profile?.name || "未命名"}（${profile?.citizenTag || "打工人"}）`;
+    identityStatusEl.textContent = `岗位: ${profile?.companyLabel || "-"} · ${profile?.roleLabel || "-"}`;
     identityBondEl.innerHTML = `<img src="${chipIconMap.bond}" alt="" class="mini-icon" />盟友: ${profile?.topBond || "-"}`;
     identityRiskEl.innerHTML = `<img src="${chipIconMap.risk}" alt="" class="mini-icon" />紧张关系: ${profile?.lowBond || "-"}`;
   }
@@ -388,12 +389,38 @@
   function openSetup(seedProfile) {
     setupEl.classList.remove("hidden");
     if (seedProfile?.name) nameInput.value = seedProfile.name;
-    previewEl.textContent = `你将以“普通上海市民”身份进入叙事。\n目标: 尽可能提升生存天数纪录。`;
+    fillRoleOptions(seedProfile?.role || null);
+    updateRolePreview();
+  }
+
+  function fillRoleOptions(preferred) {
+    const roles = game.getRoleOptions ? game.getRoleOptions() : [];
+    roleSelect.innerHTML = "";
+    roles.forEach(role => {
+      const opt = document.createElement("option");
+      opt.value = role.id;
+      opt.textContent = `${role.company} · ${role.label}`;
+      roleSelect.appendChild(opt);
+    });
+    if (preferred && roles.some(r => r.id === preferred)) {
+      roleSelect.value = preferred;
+    }
+  }
+
+  function updateRolePreview() {
+    const roles = game.getRoleOptions ? game.getRoleOptions() : [];
+    const role = roles.find(r => r.id === roleSelect.value) || roles[0];
+    if (!role) {
+      previewEl.textContent = "你将以数珩股份打工人身份进入叙事。";
+      return;
+    }
+    previewEl.textContent = `身份固定: 数珩股份牛马打工人\n当前岗位: ${role.company} · ${role.label}\n岗位说明: ${role.desc}`;
   }
 
   function startRun() {
     const profile = {
-      name: (nameInput.value || "匿名市民").trim().slice(0, 16) || "匿名市民"
+      name: (nameInput.value || "匿名打工人").trim().slice(0, 16) || "匿名打工人",
+      role: roleSelect.value
     };
     const view = game.start(profile);
     setupEl.classList.add("hidden");
@@ -520,9 +547,10 @@
   });
 
   startBtn.addEventListener("click", startRun);
+  roleSelect.addEventListener("change", updateRolePreview);
 
   hookTextEl.textContent = data.meta.hook;
-  premiseEl.textContent = `${data.meta.premise}\n\n提示: 本作为架空叙事挑战，不对应现实结论。`;
+  premiseEl.textContent = `${data.meta.premise}\n\n组织设定: 数珩股份 = 数珩科技（AI技术）+ 焕泽信息（内容营销）。\n提示: 本作为架空叙事挑战，不对应现实结论。`;
 
   openSetup(null);
   bindKeyboardShortcuts();

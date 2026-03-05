@@ -147,6 +147,7 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  justify-content: center;
 }
 
 .chip {
@@ -163,6 +164,7 @@ body {
   gap: 6px;
   text-align: center;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .chip.stage {
@@ -336,12 +338,15 @@ body {
 
 .event-hero-meta {
   position: absolute;
-  left: 10px;
-  right: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
   bottom: 8px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   z-index: 2;
 }
 
@@ -349,12 +354,14 @@ body {
   border: 1px solid #577089;
   border-radius: 999px;
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   color: #d4e7f7;
   background: rgba(13, 24, 35, 0.7);
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-height: 28px;
+  white-space: nowrap;
 }
 
 kbd {
@@ -687,7 +694,8 @@ h3 {
   color: #d4dee6;
 }
 
-.field input {
+.field input,
+.field select {
   border: 1px solid #4e6074;
   border-radius: 10px;
   background: #0f1821;

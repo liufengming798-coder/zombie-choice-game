@@ -47,14 +47,22 @@
     return rel;
   }
 
+  function getRoleDef(roleId) {
+    const roles = data.profileRoles || [];
+    return roles.find(r => r.id === roleId) || roles[0] || { id: "worker", company: "数珩股份", label: "综合岗", desc: "", startBonus: {} };
+  }
+
   function profileMeta(state) {
     const npcs = getNpcView(state);
     const top = npcs[0];
     const low = npcs[npcs.length - 1];
+    const role = getRoleDef(state.profile.role);
 
     return {
       name: state.profile.name,
-      citizenTag: "上海市民",
+      citizenTag: "数珩股份牛马打工人",
+      roleLabel: role.label,
+      companyLabel: role.company,
       statusLabel: state.flags.hasCommunity ? "社区协同中" : "流动求生中",
       topBond: top ? `${top.name}(${top.value})` : "-",
       lowBond: low ? `${low.name}(${low.value})` : "-"
@@ -79,9 +87,11 @@
     const name = (profileInput?.name || "匿名市民").replace(/\s+/g, "").slice(0, 16) || "匿名市民";
     const bestDays = Number(localStorage.getItem("zombie_survival_best_days") || 0) || 0;
 
-    return {
+    const selectedRole = getRoleDef(profileInput?.role);
+
+    const state = {
       ...base,
-      profile: { name },
+      profile: { name, role: selectedRole.id },
       day: base.day,
       turn: 0,
       lastResult: "",
@@ -99,18 +109,30 @@
       npcRelations: makeInitialNpcRelations(),
       bestDays
     };
+
+    if (selectedRole.startBonus) {
+      for (const [key, delta] of Object.entries(selectedRole.startBonus)) {
+        const def = getStatDef(key);
+        if (!def) continue;
+        state.stats[key] = clamp((state.stats[key] ?? 0) + delta, def.min, def.max);
+      }
+    }
+
+    return state;
   }
 
   function normalizeState(raw) {
     const seeded = createStore(raw?.profile);
     if (!raw || typeof raw !== "object") return seeded;
+    const mergedProfile = { ...seeded.profile, ...(raw.profile || {}) };
+    const validRole = getRoleDef(mergedProfile.role);
 
     return {
       ...seeded,
       ...raw,
       stats: { ...seeded.stats, ...(raw.stats || {}) },
       flags: { ...seeded.flags, ...(raw.flags || {}) },
-      profile: { ...seeded.profile, ...(raw.profile || {}) },
+      profile: { ...mergedProfile, role: validRole.id },
       queue: Array.isArray(raw.queue) ? raw.queue : [],
       log: Array.isArray(raw.log) ? raw.log : [],
       seenEvents: raw.seenEvents || {},
@@ -482,9 +504,14 @@
   const game = {
     state: createStore(),
 
+    getRoleOptions() {
+      return deepClone(data.profileRoles || []);
+    },
+
     start(profileInput) {
       this.state = createStore(profileInput);
-      this.state.lastResult = `${this.state.profile.name}，普通上海市民。起点在漕河泾桂果园8号楼，通信中断前最后一条语音里只剩一句: 别等系统恢复，先活下来。`;
+      const role = getRoleDef(this.state.profile.role);
+      this.state.lastResult = `${this.state.profile.name}，数珩股份牛马打工人（${role.company}·${role.label}）。起点在漕河泾桂果园8号楼，通信中断前最后一条语音里只剩一句: 别等系统恢复，先活下来。`;
       this.state.log.unshift(`第1天：${this.state.lastResult}`);
       return this.getCurrentView(true);
     },

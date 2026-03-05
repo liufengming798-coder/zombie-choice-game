@@ -387,7 +387,7 @@
   window.GAME_DATA = {
     meta: {
       title: "魔都生存手记",
-      hook: "你不是英雄，只是从漕河泾桂果园8号楼走出来、还想活下去的普通人。",
+      hook: "你不是英雄，而是数珩股份桂果园8号楼里加班到断联的牛马打工人。",
       premise: "架空叙事设定：断网前流出情报称，有境外势力向上海投放改造病毒载体。信息无法核验，但漕河泾一带秩序已崩塌，你从桂果园8号楼开始求生。",
       stages: {
         1: "崩溃初期",
@@ -397,6 +397,14 @@
         5: "长期求生"
       }
     },
+    profileRoles: [
+      { id: "ai_prompt_engineer", company: "数珩科技", label: "AI提示词工程师", desc: "熟悉模型行为和自动化工具。", startBonus: { stress: 2, supplies: 2, stamina: -1 } },
+      { id: "ai_data_annotator", company: "数珩科技", label: "AI数据标注师", desc: "耐心细致，适合长期任务。", startBonus: { trust: 3, stress: -2, stamina: -1 } },
+      { id: "ai_ops_support", company: "数珩科技", label: "AI运维支持", desc: "排障反应快，偏向稳态求生。", startBonus: { shelter: 4, stress: -1, supplies: 1 } },
+      { id: "content_planner", company: "焕泽信息", label: "内容策划", desc: "擅长沟通和叙事整合。", startBonus: { trust: 4, stress: -1, supplies: 1 } },
+      { id: "campaign_designer", company: "焕泽信息", label: "营销设计师", desc: "执行强，但体能消耗偏快。", startBonus: { supplies: 3, stamina: -2, stress: 1 } },
+      { id: "account_coordinator", company: "焕泽信息", label: "客户运营", desc: "协调能力强，冲突管理更好。", startBonus: { trust: 5, stress: -2, hunger: 1 } }
+    ],
     npcDefs,
     statDefs: [
       { key: "health", label: "健康", min: 0, max: 100 },
