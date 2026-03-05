@@ -1,20 +1,20 @@
 (function () {
   const npcDefs = [
-    { id: "shen_yi", name: "沈奕", role: "北外滩短波台维护员", initial: 52 },
-    { id: "qiao_nan", name: "乔楠", role: "徐家汇物资交换组织者", initial: 48 },
-    { id: "lu_chen", name: "陆琛", role: "虹桥路机动队司机", initial: 45 },
-    { id: "jiang_ya", name: "姜娅", role: "瑞金医院外围志愿者", initial: 50 },
-    { id: "han_song", name: "韩松", role: "杨浦防线临时指挥", initial: 44 },
-    { id: "xu_ting", name: "许庭", role: "静安里弄协调员", initial: 46 }
+    { id: "shen_yi", name: "沈奕", role: "漕河泾园区短波台维护员", initial: 52 },
+    { id: "qiao_nan", name: "乔楠", role: "田林路物资交换组织者", initial: 48 },
+    { id: "lu_chen", name: "陆琛", role: "桂平路机动队司机", initial: 45 },
+    { id: "jiang_ya", name: "姜娅", role: "钦州医院分诊志愿者", initial: 50 },
+    { id: "han_song", name: "韩松", role: "漕宝路防线临时指挥", initial: 44 },
+    { id: "xu_ting", name: "许庭", role: "桂果园楼宇协调员", initial: 46 }
   ];
 
   const districts = [
-    { key: "huangpu", name: "黄浦区", roads: ["南京西路", "淮海中路", "延安高架路"], mark: "人民广场" },
-    { key: "jingan", name: "静安区", roads: ["武宁路", "南京西路", "南北高架路"], mark: "静安寺" },
-    { key: "xuhui", name: "徐汇区", roads: ["虹桥路", "肇嘉浜路", "龙华中路"], mark: "徐家汇" },
-    { key: "pudong", name: "浦东新区", roads: ["世纪大道", "龙阳路", "内环高架路"], mark: "陆家嘴环路" },
-    { key: "yangpu", name: "杨浦区", roads: ["控江路", "周家嘴路", "中环路"], mark: "五角场" },
-    { key: "hongkou", name: "虹口区", roads: ["四川北路", "周家嘴路", "内环高架路"], mark: "北外滩" }
+    { key: "caohejing_core", name: "漕河泾核心区", roads: ["桂平路", "虹漕路", "漕宝路"], mark: "桂果园8号楼" },
+    { key: "guilin_tianlin", name: "桂林田林片区", roads: ["桂林路", "田林路", "田林东路"], mark: "田林路生活圈" },
+    { key: "yishan_hongmei", name: "宜山虹梅片区", roads: ["宜山路", "虹梅路", "钦州北路"], mark: "漕河泾印象城" },
+    { key: "caohejing_south", name: "漕河泾南扩片区", roads: ["漕宝路", "虹许路", "桂箐路"], mark: "中环漕河泾节点" },
+    { key: "qinzhou_park", name: "钦州公园片区", roads: ["钦州路", "钦州南路", "浦北路"], mark: "钦州路社区医院" },
+    { key: "wuzhong_hongxin", name: "吴中虹莘联络区", roads: ["吴中路", "虹莘路", "顾戴路"], mark: "吴中路补给点" }
   ];
 
   function makeCoreEvents() {
@@ -26,15 +26,15 @@
         minDay: 1,
         maxDay: 2,
         category: "崩溃初期",
-        title: "人民广场警报熄火",
-        body: "人民广场电子屏停在半句未播完的撤离提示。南京西路的车流已经逆向，很多人开始徒步。",
-        location: "人民广场",
-        roads: ["南京西路", "延安高架路"],
+        title: "桂果园8号楼断联",
+        body: "你在桂果园8号楼值班时，园区广播突然中断。桂平路与虹漕路出现逆行车流，楼内同事开始自发撤离。",
+        location: "桂果园8号楼",
+        roads: ["桂平路", "虹漕路"],
         choices: [
-          { label: "沿南京西路转入静安里弄", result: "你提早进入低密度街区，获得临时落脚点。", effects: { stats: { shelter: 10, stamina: -6, stress: 2 }, flagsSet: { hasCommunity: true }, queue: ["core_002_jingan_meeting"] } },
-          { label: "下到地下商场抢水和药", result: "你背回了水和常用药，但下行通道挤压引发恐慌。", effects: { stats: { supplies: 12, stress: 8, stamina: -5 } } },
-          { label: "北上外白渡桥侦察沿江线", result: "你记录到一条尚可通行的河岸路线。", effects: { stats: { stamina: -8, stress: 3 }, flagsSet: { hasWaterRoute: true }, queue: ["core_003_bund_signal"] } },
-          { label: "回家固守，封闭单元门", result: "你暂时安全，但错过了第一波协同信息。", effects: { stats: { shelter: 5, trust: -4, stress: -1 } } }
+          { label: "沿桂平路转入园区内街", result: "你提早进入低密度办公区，获得临时落脚点。", effects: { stats: { shelter: 10, stamina: -6, stress: 2 }, flagsSet: { hasCommunity: true }, queue: ["core_002_jingan_meeting"] } },
+          { label: "去地下一层便利店抢水和药", result: "你背回了水和常用药，但地下通道挤压引发恐慌。", effects: { stats: { supplies: 12, stress: 8, stamina: -5 } } },
+          { label: "向钦州北路方向侦察外圈", result: "你记录到一条尚可通行的外围路线。", effects: { stats: { stamina: -8, stress: 3 }, flagsSet: { hasWaterRoute: true }, queue: ["core_003_bund_signal"] } },
+          { label: "回8号楼固守，封闭楼层门禁", result: "你暂时安全，但错过了第一波协同信息。", effects: { stats: { shelter: 5, trust: -4, stress: -1 } } }
         ]
       },
       {
@@ -46,10 +46,10 @@
         category: "封锁裂解",
         requiresFlagsAll: ["hasCommunity"],
         npcId: "xu_ting",
-        title: "静安里弄守门会",
-        body: "许庭在黑板上写满轮班名单。武宁路传来冲卡噪声，住户在“开门收人”与“立刻封门”间争执。",
-        location: "静安区",
-        roads: ["武宁路", "南京西路"],
+        title: "桂果园楼层守门会",
+        body: "许庭在白板上写满轮班名单。桂林路外传来冲卡噪声，楼内在“收容附近居民”与“立即封层”间争执。",
+        location: "漕河泾核心区",
+        roads: ["桂林路", "田林路"],
         choices: [
           { label: "支持许庭按户登记接纳", result: "名单制度落地，秩序有所恢复。", effects: { stats: { trust: 10, stress: 3, shelter: 6 }, npc: { xu_ting: 9 }, flagsSet: { npc_xu_ting_met: true, pledgedNoAbandon: true } } },
           { label: "主张只留原住户，严格封门", result: "门口风险下降，但很多人对你心生隔阂。", effects: { stats: { shelter: 10, trust: -8, stress: 1 }, npc: { xu_ting: -8 }, flagsSet: { betrayedCivilians: true, npc_xu_ting_met: true } } },
@@ -66,10 +66,10 @@
         category: "组织重构",
         requiresFlagsAll: ["hasWaterRoute"],
         npcId: "shen_yi",
-        title: "北外滩短波点",
-        body: "沈奕在北外滩楼顶维护短波台，声称能听到沿江补给艇和临时医疗点编码。",
-        location: "北外滩",
-        roads: ["四川北路", "周家嘴路"],
+        title: "虹梅路短波点",
+        body: "沈奕在虹梅路楼顶维护短波台，声称能听到附近医疗点和补给车队编码。",
+        location: "宜山虹梅片区",
+        roads: ["虹梅路", "钦州北路"],
         choices: [
           { label: "加入维护轮班，换取频段权限", result: "你拿到一台手摇收音机，夜里能监听到坐标片段。", effects: { stats: { trust: 8, stamina: -6, stress: 2 }, npc: { shen_yi: 10 }, flagsSet: { hasRadio: true, allianceNorthBund: true, npc_shen_yi_met: true }, queue: ["npc_shen_yi_02"] } },
           { label: "只交换地图，不深度绑定", result: "你保持独立，情报却总慢半步。", effects: { stats: { stress: -1, trust: -3 }, npc: { shen_yi: -2 }, flagsSet: { npc_shen_yi_met: true } } },
@@ -85,14 +85,14 @@
         maxDay: 9,
         category: "封锁裂解",
         npcId: "jiang_ya",
-        title: "瑞金医院分流带",
-        body: "姜娅正带志愿者在肇嘉浜路做分流，急诊外排队长度超过三条街口。",
-        location: "瑞金医院",
-        roads: ["肇嘉浜路", "淮海中路"],
+        title: "钦州医院分流带",
+        body: "姜娅正带志愿者在钦州路做分流，门诊外排队长度已经绕过街角。",
+        location: "钦州路社区医院",
+        roads: ["钦州路", "钦州南路"],
         choices: [
           { label: "协助分流并护送重伤者", result: "你熬到天亮，换回药包和一份后续路线图。", effects: { stats: { infection: -8, stamina: -9, trust: 8 }, npc: { jiang_ya: 10 }, flagsSet: { hasClinicRoute: true, npc_jiang_ya_met: true }, queue: ["npc_jiang_ya_02"] } },
           { label: "优先为自己队伍取药", result: "你拿到更多药，但被记录在‘插队名单’里。", effects: { stats: { supplies: 9, trust: -8, stress: 4 }, npc: { jiang_ya: -9 }, flagsSet: { hasClinicRoute: true, betrayedCivilians: true, npc_jiang_ya_met: true } } },
-          { label: "转去龙华中路民间诊所", result: "你找到可处理轻伤的诊所，效率一般。", effects: { stats: { infection: -4, stamina: -4, supplies: -2 }, npc: { jiang_ya: 1 }, flagsSet: { hasClinicRoute: true, npc_jiang_ya_met: true } } },
+          { label: "转去桂箐路民间诊所", result: "你找到可处理轻伤的诊所，效率一般。", effects: { stats: { infection: -4, stamina: -4, supplies: -2 }, npc: { jiang_ya: 1 }, flagsSet: { hasClinicRoute: true, npc_jiang_ya_met: true } } },
           { label: "避免医疗区，直接回据点", result: "你规避了拥挤风险，也错过了关键医疗资源。", effects: { stats: { stress: -2, infection: 3, trust: -2 }, npc: { jiang_ya: -3 }, flagsSet: { npc_jiang_ya_met: true } } }
         ]
       },
@@ -104,14 +104,14 @@
         maxDay: 12,
         category: "组织重构",
         npcId: "qiao_nan",
-        title: "徐家汇连廊交换站",
-        body: "乔楠在徐家汇地下连廊组织交换。虹桥路车队要柴油，居民更要净水片和奶粉。",
-        location: "徐家汇",
-        roads: ["虹桥路", "肇嘉浜路"],
+        title: "田林路连廊交换站",
+        body: "乔楠在田林路地下连廊组织交换。桂平路车队要柴油，居民更要净水片和奶粉。",
+        location: "桂林田林片区",
+        roads: ["田林路", "桂林路"],
         choices: [
           { label: "支持乔楠按急需等级分配", result: "争执明显下降，你被加入协管名单。", effects: { stats: { trust: 11, stress: 2, supplies: -4 }, npc: { qiao_nan: 9 }, flagsSet: { allianceXuhui: true, npc_qiao_nan_met: true }, queue: ["npc_qiao_nan_02"] } },
           { label: "优先囤积柴油与电池", result: "你短期收益最大，但口碑急剧下滑。", effects: { stats: { supplies: 10, shelter: 4, trust: -9, stress: 4 }, npc: { qiao_nan: -10 }, flagsSet: { betrayedCivilians: true, npc_qiao_nan_met: true } } },
-          { label: "牵线北外滩共享守夜频段", result: "两处据点首次实现信息联动。", effects: { stats: { trust: 9, stamina: -4, stress: -1 }, npc: { qiao_nan: 6, shen_yi: 4 }, flagsSet: { metroCodeKnown: true, npc_qiao_nan_met: true } } },
+          { label: "牵线虹梅路共享守夜频段", result: "两处据点首次实现信息联动。", effects: { stats: { trust: 9, stamina: -4, stress: -1 }, npc: { qiao_nan: 6, shen_yi: 4 }, flagsSet: { metroCodeKnown: true, npc_qiao_nan_met: true } } },
           { label: "保持中立，只做旁观交易", result: "风险可控，但你对局势影响有限。", effects: { stats: { stress: -1, trust: -2, supplies: 3 }, npc: { qiao_nan: -1 }, flagsSet: { npc_qiao_nan_met: true } } }
         ]
       },
@@ -123,15 +123,15 @@
         maxDay: 16,
         category: "高压消耗",
         npcId: "lu_chen",
-        title: "虹桥路车队对峙",
-        body: "陆琛带的机动队在虹桥路与两支车队对峙，三方都盯着同一批滤水器。",
-        location: "虹桥路",
-        roads: ["虹桥路", "延安高架路"],
+        title: "桂平路车队对峙",
+        body: "陆琛带的机动队在桂平路与两支车队对峙，三方都盯着同一批滤水器。",
+        location: "桂平路",
+        roads: ["桂平路", "漕宝路"],
         choices: [
           { label: "现场监督三方轮替分配", result: "局面勉强稳住，你据点得到固定补水配额。", effects: { stats: { supplies: 8, trust: 10, stamina: -7, stress: 4 }, npc: { lu_chen: 8 }, flagsSet: { knowsFoodDepot: true, npc_lu_chen_met: true }, queue: ["npc_lu_chen_02"] } },
           { label: "掩护弱势车队先撤", result: "你救下了家庭车队，但损失了部分库存。", effects: { stats: { trust: 12, supplies: -6, stamina: -8, stress: 4 }, npc: { lu_chen: 6 }, flagsSet: { pledgedNoAbandon: true, npc_lu_chen_met: true } } },
           { label: "趁乱强夺滤水器", result: "你抢到资源，多个据点将你列入黑名单。", effects: { stats: { supplies: 13, trust: -14, stress: 3 }, npc: { lu_chen: -12 }, flagsSet: { betrayedCivilians: true, npc_lu_chen_met: true } } },
-          { label: "回避冲突，改走中环线", result: "你避免正面风险，也错失关键装备窗口。", effects: { stats: { stamina: -4, stress: -1, hunger: 3 }, npc: { lu_chen: -2 }, flagsSet: { npc_lu_chen_met: true } } }
+          { label: "回避冲突，改走虹许路", result: "你避免正面风险，也错失关键装备窗口。", effects: { stats: { stamina: -4, stress: -1, hunger: 3 }, npc: { lu_chen: -2 }, flagsSet: { npc_lu_chen_met: true } } }
         ]
       },
       {
@@ -142,14 +142,14 @@
         maxDay: 22,
         category: "高压消耗",
         npcId: "han_song",
-        title: "杨浦防线缺口",
-        body: "韩松请求各据点增援控江路-周家嘴路缺口，不堵住凌晨前会形成贯通破口。",
-        location: "杨浦区",
-        roads: ["控江路", "周家嘴路"],
+        title: "漕宝路防线缺口",
+        body: "韩松请求各据点增援漕宝路-虹许路缺口，不堵住凌晨前会形成贯通破口。",
+        location: "漕河泾南扩片区",
+        roads: ["漕宝路", "虹许路"],
         choices: [
           { label: "带人上前线封口", result: "最危险的两小时被守住了。", effects: { stats: { trust: 13, stamina: -12, supplies: -8, stress: 5 }, npc: { han_song: 10 }, flagsSet: { holdLineYangpu: true, npc_han_song_met: true }, queue: ["npc_han_song_02"] } },
           { label: "提供物资不派人", result: "你保留主力，但被批评过于保守。", effects: { stats: { supplies: -9, shelter: 8, trust: -3, stress: 2 }, npc: { han_song: -4 }, flagsSet: { npc_han_song_met: true } } },
-          { label: "建议整体后撤至浦东内线", result: "很多人活下来了，但北段被迫放弃。", effects: { stats: { stamina: -6, trust: -8, stress: 3, shelter: -2 }, npc: { han_song: -8 }, flagsSet: { citywideBlackout: true, npc_han_song_met: true } } },
+          { label: "建议整体后撤至桂箐路内线", result: "很多人活下来了，但外圈被迫放弃。", effects: { stats: { stamina: -6, trust: -8, stress: 3, shelter: -2 }, npc: { han_song: -8 }, flagsSet: { citywideBlackout: true, npc_han_song_met: true } } },
           { label: "拒绝响应，只守本据点", result: "你短期安全，却失去跨区协同资格。", effects: { stats: { trust: -12, stress: -1 }, npc: { han_song: -10 }, flagsSet: { betrayedCivilians: true, npc_han_song_met: true } } }
         ]
       },
@@ -160,15 +160,15 @@
         minDay: 14,
         maxDay: 32,
         category: "长期求生",
-        title: "苏州河临时过桥点",
-        body: "内环高架路下搭起钢架便桥，能重接静安与虹口补给线，但需要昼夜维护。",
-        location: "苏州河沿线",
-        roads: ["内环高架路", "四川北路"],
+        title: "漕河泾临时跨线点",
+        body: "中环漕河泾节点旁搭起钢架跨线通道，能重接桂林田林与虹梅片区补给线，但需要昼夜维护。",
+        location: "中环漕河泾节点",
+        roads: ["桂箐路", "虹漕路"],
         choices: [
           { label: "投入人手和钢材保桥", result: "跨区运补恢复，多据点愿意与你同步排班。", effects: { stats: { shelter: 14, trust: 11, supplies: -10, stamina: -9 }, flagsSet: { openedSuzhouCrossing: true } } },
           { label: "只保夜间窗口，白天封桥", result: "风险下降，效率也下降，但可持续。", effects: { stats: { shelter: 8, trust: 4, stamina: -5, stress: -1 }, flagsSet: { openedSuzhouCrossing: true } } },
           { label: "拒绝参与，钢材回收自用", result: "本据点更硬，城市协同继续恶化。", effects: { stats: { shelter: 11, supplies: 4, trust: -9, stress: 2 } } },
-          { label: "炸毁桥架阻断追击", result: "你们短期安全，但北线居民撤离路被切断。", effects: { stats: { stress: 10, trust: -15, shelter: 4 }, flagsSet: { betrayedCivilians: true } } }
+          { label: "炸毁跨线点阻断追击", result: "你们短期安全，但外围居民撤离路被切断。", effects: { stats: { stress: 10, trust: -15, shelter: 4 }, flagsSet: { betrayedCivilians: true } } }
         ]
       },
       {
@@ -179,10 +179,10 @@
         maxDay: 60,
         category: "长期求生",
         requiresAnyFlags: ["hasRadio", "metroCodeKnown"],
-        title: "龙阳路撤离编码",
-        body: "你在龙阳路收到重复编码，疑似跨江撤离窗口。是否公开，将直接改变几百人的走向。",
-        location: "龙阳路",
-        roads: ["龙阳路", "世纪大道"],
+        title: "桂林路撤离编码",
+        body: "你在桂林路收到重复编码，疑似园区外圈撤离窗口。是否公开，将直接改变几百人的走向。",
+        location: "桂林路",
+        roads: ["桂林路", "宜山路"],
         choices: [
           { label: "公开编码并组织分批撤离", result: "道路拥堵但秩序仍在，许多人记住了你的坚持。", effects: { stats: { trust: 15, stamina: -10, stress: 8, supplies: -8 }, flagsSet: { evacSignalKnown: true, pledgedNoAbandon: true } } },
           { label: "只通知核心成员", result: "你保住自己人，却背上了“抛弃他人”的标签。", effects: { stats: { supplies: 10, trust: -12, stress: -2 }, flagsSet: { evacSignalKnown: true, betrayedCivilians: true } } },
@@ -198,9 +198,9 @@
         maxDay: 95,
         category: "长期求生",
         title: "第30天节点",
-        body: "你活过了30天。中山公园临时会提议“社区化”与“机动化”双路线重组。",
-        location: "中山公园",
-        roads: ["中山公园环路", "内环高架路"],
+        body: "你活过了30天。桂果园8号楼临时会提议“社区化”与“机动化”双路线重组。",
+        location: "桂果园8号楼",
+        roads: ["桂平路", "漕宝路"],
         choices: [
           { label: "升级社区化，建立教育与轮班", result: "秩序感增强，长期韧性提升。", effects: { stats: { shelter: 16, trust: 10, supplies: -10, stress: -4 }, flagsSet: { hasCommunity: true } } },
           { label: "维持机动化，降低团灭风险", result: "弹性更强，但纽带变薄。", effects: { stats: { stamina: 8, trust: -6, shelter: -4, stress: 2 } } },
@@ -387,8 +387,8 @@
   window.GAME_DATA = {
     meta: {
       title: "魔都生存手记",
-      hook: "你不是英雄，只是上海断联后还想活下去的普通人。",
-      premise: "架空叙事设定：全城断网前流出情报称，有境外势力向长三角投放了改造病毒载体。信息无法核验，但城市秩序已崩塌。",
+      hook: "你不是英雄，只是从漕河泾桂果园8号楼走出来、还想活下去的普通人。",
+      premise: "架空叙事设定：断网前流出情报称，有境外势力向上海投放改造病毒载体。信息无法核验，但漕河泾一带秩序已崩塌，你从桂果园8号楼开始求生。",
       stages: {
         1: "崩溃初期",
         2: "封锁裂解",

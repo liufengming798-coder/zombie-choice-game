@@ -484,7 +484,7 @@
 
     start(profileInput) {
       this.state = createStore(profileInput);
-      this.state.lastResult = `${this.state.profile.name}，普通上海市民。通信中断前最后一条语音里只剩一句: 别等系统恢复，先活下来。`;
+      this.state.lastResult = `${this.state.profile.name}，普通上海市民。起点在漕河泾桂果园8号楼，通信中断前最后一条语音里只剩一句: 别等系统恢复，先活下来。`;
       this.state.log.unshift(`第1天：${this.state.lastResult}`);
       return this.getCurrentView(true);
     },
