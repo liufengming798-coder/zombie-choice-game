@@ -38,43 +38,45 @@
   const sceneLabelEl = document.getElementById("scene-label");
 
   const statLabelMap = Object.fromEntries((data.statDefs || []).map(s => [s.key, s.label]));
+  const ASSET_VER = "20260305b";
+  const withVer = path => `${path}?v=${ASSET_VER}`;
   const statIconMap = {
-    health: "assets/icons/heart-pulse.svg",
-    infection: "assets/icons/flame.svg",
-    hunger: "assets/icons/warning-triangle.svg",
-    supplies: "assets/icons/route.svg",
-    stamina: "assets/icons/swords.svg",
-    stress: "assets/icons/warning-triangle.svg",
-    trust: "assets/icons/users.svg",
-    shelter: "assets/icons/shield.svg"
+    health: withVer("assets/icons/heart-pulse.svg"),
+    infection: withVer("assets/icons/flame.svg"),
+    hunger: withVer("assets/icons/warning-triangle.svg"),
+    supplies: withVer("assets/icons/route.svg"),
+    stamina: withVer("assets/icons/swords.svg"),
+    stress: withVer("assets/icons/warning-triangle.svg"),
+    trust: withVer("assets/icons/users.svg"),
+    shelter: withVer("assets/icons/shield.svg")
   };
   const categoryIconMap = {
-    崩溃初期: "assets/icons/flame.svg",
-    封锁裂解: "assets/icons/lock-open.svg",
-    组织重构: "assets/icons/users.svg",
-    高压消耗: "assets/icons/swords.svg",
-    长期求生: "assets/icons/shield.svg",
-    终局: "assets/icons/warning-triangle.svg"
+    崩溃初期: withVer("assets/icons/flame.svg"),
+    封锁裂解: withVer("assets/icons/lock-open.svg"),
+    组织重构: withVer("assets/icons/users.svg"),
+    高压消耗: withVer("assets/icons/swords.svg"),
+    长期求生: withVer("assets/icons/shield.svg"),
+    终局: withVer("assets/icons/warning-triangle.svg")
   };
   const sceneImageMap = {
-    combat: "assets/images/shanghai-night-cc0.jpg",
-    moral: "assets/images/shanghai-skyline-cc0.jpg",
-    bond: "assets/images/shanghai-skyline-cc0.jpg",
-    scavenge: "assets/images/shanghai-night-cc0.jpg",
-    shelter: "assets/images/shanghai-skyline-cc0.jpg",
-    zombie: "assets/images/shanghai-night-cc0.jpg",
-    signal: "assets/images/shanghai-skyline-cc0.jpg",
-    neutral: "assets/images/shanghai-skyline-cc0.jpg"
+    combat: withVer("assets/images/shanghai-night-cc0.jpg"),
+    moral: withVer("assets/images/shanghai-skyline-cc0.jpg"),
+    bond: withVer("assets/images/shanghai-skyline-cc0.jpg"),
+    scavenge: withVer("assets/images/shanghai-night-cc0.jpg"),
+    shelter: withVer("assets/images/shanghai-skyline-cc0.jpg"),
+    zombie: withVer("assets/images/shanghai-night-cc0.jpg"),
+    signal: withVer("assets/images/shanghai-skyline-cc0.jpg"),
+    neutral: withVer("assets/images/shanghai-skyline-cc0.jpg")
   };
   const chipIconMap = {
-    district: "assets/icons/map-pin.svg",
-    road: "assets/icons/route.svg",
-    record: "assets/icons/antenna-bars-5.svg",
-    pressure: "assets/icons/warning-triangle.svg",
-    stage: "assets/icons/shield.svg",
-    category: "assets/icons/flame.svg",
-    bond: "assets/icons/users.svg",
-    risk: "assets/icons/lock-open.svg"
+    district: withVer("assets/icons/map-pin.svg"),
+    road: withVer("assets/icons/route.svg"),
+    record: withVer("assets/icons/antenna-bars-5.svg"),
+    pressure: withVer("assets/icons/warning-triangle.svg"),
+    stage: withVer("assets/icons/shield.svg"),
+    category: withVer("assets/icons/flame.svg"),
+    bond: withVer("assets/icons/users.svg"),
+    risk: withVer("assets/icons/lock-open.svg")
   };
 
   let latestView = null;
@@ -219,18 +221,18 @@
 
     const categoryIcon = document.createElement("span");
     categoryIcon.className = "hero-chip";
-    categoryIcon.innerHTML = `<img src="${categoryIconMap[view.category] || "assets/icons/map-pin.svg"}" alt="" class="mini-icon" />${view.category || "事件"}`;
+    categoryIcon.innerHTML = `<img src="${categoryIconMap[view.category] || withVer("assets/icons/map-pin.svg")}" alt="" class="mini-icon" />${view.category || "事件"}`;
     eventHeroMetaEl.appendChild(categoryIcon);
 
     const dayChip = document.createElement("span");
     dayChip.className = "hero-chip";
-    dayChip.innerHTML = `<img src="assets/icons/map-pin.svg" alt="" class="mini-icon" />第${view.day}天`;
+    dayChip.innerHTML = `<img src="${withVer("assets/icons/map-pin.svg")}" alt="" class="mini-icon" />第${view.day}天`;
     eventHeroMetaEl.appendChild(dayChip);
 
     if (view.world?.focalNpc) {
       const npcChip = document.createElement("span");
       npcChip.className = "hero-chip";
-      npcChip.innerHTML = `<img src="assets/icons/users.svg" alt="" class="mini-icon" />关系焦点: ${view.world.focalNpc}`;
+      npcChip.innerHTML = `<img src="${withVer("assets/icons/users.svg")}" alt="" class="mini-icon" />关系焦点: ${view.world.focalNpc}`;
       eventHeroMetaEl.appendChild(npcChip);
     }
   }
@@ -330,7 +332,7 @@
 
       const top = document.createElement("div");
       top.className = "tarot-top";
-      top.innerHTML = `<span>ARCANA ${String(index + 1).padStart(2, "0")}</span><img src="${categoryIconMap[view.category] || "assets/icons/route.svg"}" alt="" class="mini-icon" />`;
+      top.innerHTML = `<span>ARCANA ${String(index + 1).padStart(2, "0")}</span><img src="${categoryIconMap[view.category] || withVer("assets/icons/route.svg")}" alt="" class="mini-icon" />`;
       card.appendChild(top);
 
       const label = document.createElement("div");
@@ -345,7 +347,7 @@
 
       const bottom = document.createElement("div");
       bottom.className = "tarot-bottom";
-      bottom.innerHTML = `<span>[#${index + 1}]</span>${choice.impact?.npcs?.length ? `<span class="npc-hint"><img src="assets/icons/users.svg" alt="" class="mini-icon" />关系变动</span>` : ""}`;
+      bottom.innerHTML = `<span>[#${index + 1}]</span>${choice.impact?.npcs?.length ? `<span class="npc-hint"><img src="${withVer("assets/icons/users.svg")}" alt="" class="mini-icon" />关系变动</span>` : ""}`;
       card.appendChild(bottom);
 
       if (!choice.disabled) {
