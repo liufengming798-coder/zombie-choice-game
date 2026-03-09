@@ -507,6 +507,31 @@ kbd {
 .impact-pill.neg { border-color: #915050; color: #ffd9d9; }
 .impact-pill.npc { border-style: dashed; }
 
+.risk-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.risk-pill {
+  border: 1px solid #7a5a45;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #ffd7bc;
+  background: rgba(154, 95, 57, 0.08);
+}
+
+.lock-note {
+  border: 1px dashed #755a43;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #f0c6a8;
+  background: rgba(154, 95, 57, 0.08);
+}
+
 .control-panel {
   padding: 14px;
   min-height: 700px;
@@ -524,6 +549,103 @@ h3 {
 .stats {
   display: grid;
   gap: 8px;
+}
+
+.brief-card,
+.signal-feed {
+  border: 1px solid #3a4e62;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  line-height: 1.7;
+  font-size: 13px;
+  color: #dbe6ee;
+  white-space: pre-wrap;
+}
+
+.brief-card {
+  background:
+    radial-gradient(180px 100px at 100% 0%, rgba(243, 169, 113, 0.08), transparent 70%),
+    rgba(255, 255, 255, 0.02);
+}
+
+.brief-card strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #fff1da;
+}
+
+.brief-card span {
+  color: #dbe6ee;
+}
+
+.brief-card.danger {
+  border-color: #8d5347;
+}
+
+.brief-card.warn {
+  border-color: #8b7141;
+}
+
+.signal-feed {
+  color: #b9d8eb;
+  border-style: dashed;
+  font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+  letter-spacing: 0.2px;
+}
+
+.briefing-panel,
+.shelter-panel,
+.debt-panel,
+.consequence-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.briefing-item,
+.module-item,
+.debt-item,
+.consequence-item {
+  border: 1px solid #3a4e62;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 12px;
+  line-height: 1.55;
+  color: #d7e3ed;
+}
+
+.briefing-item.high,
+.debt-item.high {
+  border-color: #8d5347;
+  color: #ffd4cb;
+}
+
+.briefing-item.medium,
+.debt-item.medium {
+  border-color: #85714a;
+  color: #f2dec1;
+}
+
+.briefing-item.low {
+  border-color: #47667c;
+}
+
+.module-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debt-item,
+.consequence-item {
+  display: grid;
+  gap: 4px;
+}
+
+.debt-item.empty,
+.consequence-item.empty {
+  color: #aebdca;
 }
 
 .stat-item {

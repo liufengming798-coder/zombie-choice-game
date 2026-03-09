@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>魔都生存手记</title>
-  <link rel="stylesheet" href="style.css?v=20260305c" />
+  <title>雾港 17 层</title>
+  <link rel="stylesheet" href="style.css?v=20260309a" />
 </head>
 <body>
   <canvas id="skyline-canvas" aria-hidden="true"></canvas>
@@ -13,7 +13,7 @@
   <main class="app-shell">
     <header class="hud-top">
       <div class="brand-wrap">
-        <h1>魔都生存手记</h1>
+        <h1>雾港 17 层</h1>
         <p id="hook-text"></p>
       </div>
       <div class="world-wrap">
@@ -63,8 +63,38 @@
 
       <aside class="control-panel">
         <section>
+          <h3>当前目标</h3>
+          <div id="objective-card" class="brief-card"></div>
+        </section>
+
+        <section>
+          <h3>监听回路</h3>
+          <div id="signal-feed" class="signal-feed"></div>
+        </section>
+
+        <section>
+          <h3>今晚最危险的事</h3>
+          <div id="briefing-panel" class="briefing-panel"></div>
+        </section>
+
+        <section>
           <h3>生存仪表</h3>
           <div id="stats" class="stats"></div>
+        </section>
+
+        <section>
+          <h3>据点模块</h3>
+          <div id="shelter-panel" class="shelter-panel"></div>
+        </section>
+
+        <section>
+          <h3>未处理承诺</h3>
+          <div id="debt-panel" class="debt-panel"></div>
+        </section>
+
+        <section>
+          <h3>后果倒计时</h3>
+          <div id="consequence-panel" class="consequence-panel"></div>
         </section>
 
         <section class="story-memory">
@@ -87,7 +117,7 @@
 
   <section id="setup-screen" class="setup-screen">
     <div class="setup-card">
-      <h2>输入你的身份</h2>
+      <h2>录入幸存者档案</h2>
       <p id="premise-text"></p>
 
       <label class="field">
@@ -95,17 +125,17 @@
         <input id="player-name" type="text" maxlength="16" placeholder="例如：陈默" />
       </label>
       <label class="field">
-        <span>岗位（数珩科技 / 焕泽信息）</span>
+        <span>岗位</span>
         <select id="player-role"></select>
       </label>
 
       <div id="profile-preview" class="preview"></div>
-      <button id="btn-start" class="btn start">开始生存挑战</button>
+      <button id="btn-start" class="btn start">进入封楼夜</button>
     </div>
   </section>
 
-  <script src="data/events.js?v=20260305c"></script>
-  <script src="engine.js?v=20260305c"></script>
-  <script src="ui.js?v=20260305c"></script>
+  <script src="data/events.js?v=20260309a"></script>
+  <script src="engine.js?v=20260309a"></script>
+  <script src="ui.js?v=20260309a"></script>
 </body>
 </html>

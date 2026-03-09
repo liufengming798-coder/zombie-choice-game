@@ -11,10 +11,17 @@
   const categoryEl = document.getElementById("event-category");
   const choicesEl = document.getElementById("choices");
   const statsEl = document.getElementById("stats");
+  const objectiveCardEl = document.getElementById("objective-card");
+  const signalFeedEl = document.getElementById("signal-feed");
+  const briefingPanelEl = document.getElementById("briefing-panel");
+  const shelterPanelEl = document.getElementById("shelter-panel");
+  const debtPanelEl = document.getElementById("debt-panel");
+  const consequencePanelEl = document.getElementById("consequence-panel");
   const memoryEl = document.getElementById("memory");
   const logEl = document.getElementById("log");
   const logToggleBtn = document.getElementById("toggle-log");
   const hookTextEl = document.getElementById("hook-text");
+  const brandTitleEl = document.querySelector(".brand-wrap h1");
 
   const worldDistrictEl = document.getElementById("world-district");
   const worldRoadEl = document.getElementById("world-road");
@@ -39,13 +46,16 @@
   const sceneLabelEl = document.getElementById("scene-label");
 
   const statLabelMap = Object.fromEntries((data.statDefs || []).map(s => [s.key, s.label]));
-  const ASSET_VER = "20260305c";
+  const ASSET_VER = "20260309a";
   const withVer = path => `${path}?v=${ASSET_VER}`;
   const statIconMap = {
     health: withVer("assets/icons/heart-pulse.svg"),
     infection: withVer("assets/icons/flame.svg"),
     hunger: withVer("assets/icons/warning-triangle.svg"),
     supplies: withVer("assets/icons/route.svg"),
+    fatigue: withVer("assets/icons/swords.svg"),
+    morale: withVer("assets/icons/users.svg"),
+    threat: withVer("assets/icons/warning-triangle.svg"),
     stamina: withVer("assets/icons/swords.svg"),
     stress: withVer("assets/icons/warning-triangle.svg"),
     trust: withVer("assets/icons/users.svg"),
@@ -148,6 +158,74 @@
     });
   }
 
+  function renderBriefs(view) {
+    const objective = view.objective || {};
+    objectiveCardEl.className = `brief-card ${objective.tone || "stable"}`;
+    objectiveCardEl.innerHTML = `<strong>${objective.title || "暂无阶段目标"}</strong><span>${objective.body || ""}</span>`;
+    signalFeedEl.textContent = view.signalFeed || "暂无监听内容。";
+  }
+
+  function renderBriefingPanel(items) {
+    briefingPanelEl.innerHTML = "";
+    const list = (items || []).slice(0, 3);
+    if (!list.length) {
+      briefingPanelEl.innerHTML = `<div class="briefing-item low">暂无即时风险</div>`;
+      return;
+    }
+    list.forEach(item => {
+      const row = document.createElement("div");
+      row.className = `briefing-item ${item.level || "low"}`;
+      row.textContent = item.text;
+      briefingPanelEl.appendChild(row);
+    });
+  }
+
+  function renderShelterPanel(modules) {
+    shelterPanelEl.innerHTML = "";
+    Object.entries(modules || {}).forEach(([key, value]) => {
+      const row = document.createElement("div");
+      row.className = "module-item";
+      row.innerHTML = `<span>${statLabelMap[key] || ({
+        water: "水源",
+        power: "电力",
+        medical: "医疗角",
+        defense: "防线",
+        intel: "广播/情报"
+      }[key] || key)}</span><span>${Math.round(value)}</span>`;
+      shelterPanelEl.appendChild(row);
+    });
+  }
+
+  function renderDebtPanel(debts) {
+    debtPanelEl.innerHTML = "";
+    const list = (debts || []).slice(0, 4);
+    if (!list.length) {
+      debtPanelEl.innerHTML = `<div class="debt-item empty">暂无未处理承诺</div>`;
+      return;
+    }
+    list.forEach(item => {
+      const row = document.createElement("div");
+      row.className = `debt-item ${item.escalated ? "high" : (item.severity || "medium")}`;
+      row.innerHTML = `<strong>${item.title}${item.escalated ? " · 已失约" : ""}</strong><span>到期: 第${item.dueDay}天</span>`;
+      debtPanelEl.appendChild(row);
+    });
+  }
+
+  function renderConsequencePanel(items) {
+    consequencePanelEl.innerHTML = "";
+    const list = (items || []).slice(0, 4);
+    if (!list.length) {
+      consequencePanelEl.innerHTML = `<div class="consequence-item empty">暂无待落地后果</div>`;
+      return;
+    }
+    list.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "consequence-item";
+      row.innerHTML = `<strong>第${item.dueDay}天</strong><span>${item.text}</span>`;
+      consequencePanelEl.appendChild(row);
+    });
+  }
+
   function renderMemory(entries) {
     memoryEl.innerHTML = "";
     const picks = (entries || []).slice(0, 6);
@@ -176,7 +254,7 @@
           <span>${npc.name}</span>
           <span>${npc.value}</span>
         </div>
-        <div class=\"npc-role\">${npc.role} · ${npc.stance}</div>
+        <div class=\"npc-role\">${npc.role} · ${npc.stance}${npc.memories?.length ? ` · ${npc.memories[0]}` : ""}</div>
       `;
       npcRelationsEl.appendChild(item);
     });
@@ -194,7 +272,7 @@
 
   function renderIdentity(profile) {
     identityNameEl.textContent = `身份: ${profile?.name || "未命名"}（${profile?.citizenTag || "打工人"}）`;
-    identityStatusEl.textContent = `岗位: ${profile?.companyLabel || "-"} · ${profile?.roleLabel || "-"}`;
+    identityStatusEl.textContent = `岗位: ${profile?.companyLabel || "-"} · ${profile?.roleLabel || "-"} · ${profile?.moraleLabel || "-"}`;
     identityBondEl.innerHTML = `<img src="${chipIconMap.bond}" alt="" class="mini-icon" />盟友: ${profile?.topBond || "-"}`;
     identityRiskEl.innerHTML = `<img src="${chipIconMap.risk}" alt="" class="mini-icon" />紧张关系: ${profile?.lowBond || "-"}`;
   }
@@ -353,9 +431,28 @@
       renderImpactPills(choice.impact, impactWrap);
       card.appendChild(impactWrap);
 
+      if (choice.riskTags?.length) {
+        const riskWrap = document.createElement("div");
+        riskWrap.className = "risk-wrap";
+        choice.riskTags.forEach(tag => {
+          const pill = document.createElement("span");
+          pill.className = "risk-pill";
+          pill.textContent = tag;
+          riskWrap.appendChild(pill);
+        });
+        card.appendChild(riskWrap);
+      }
+
+      if (choice.disabled && choice.lockReason) {
+        const lock = document.createElement("div");
+        lock.className = "lock-note";
+        lock.textContent = `未满足: ${choice.lockReason}`;
+        card.appendChild(lock);
+      }
+
       const bottom = document.createElement("div");
       bottom.className = "tarot-bottom";
-      bottom.innerHTML = `<span>[#${index + 1}]</span>${choice.impact?.npcs?.length ? `<span class="npc-hint"><img src="${withVer("assets/icons/users.svg")}" alt="" class="mini-icon" />关系变动</span>` : ""}`;
+      bottom.innerHTML = `<span>[#${index + 1}] · ${choice.riskLabel || "未知风险"}</span>${choice.impact?.npcs?.length ? `<span class="npc-hint"><img src="${withVer("assets/icons/users.svg")}" alt="" class="mini-icon" />关系变动</span>` : ""}`;
       card.appendChild(bottom);
 
       if (!choice.disabled) {
@@ -385,11 +482,16 @@
     renderSceneTheme(view);
     renderEventHero(view);
     renderChoices(view);
+    renderBriefs(view);
+    renderBriefingPanel(view.briefing || []);
     renderStats(view.stats);
+    renderShelterPanel(view.shelterModules || {});
+    renderDebtPanel(view.debts || []);
+    renderConsequencePanel(view.consequences || []);
     renderIdentity(view.profile);
     renderWorld(view);
     renderNpcRelations(view.npcs || []);
-    renderMemory(view.memory?.majorDecisions || view.log);
+    renderMemory(view.memory?.memoryTraces || view.memory?.majorDecisions || view.log);
     renderLog(view.log);
   }
 
@@ -418,10 +520,10 @@
     const roles = game.getRoleOptions ? game.getRoleOptions() : [];
     const role = roles.find(r => r.id === roleSelect.value) || roles[0];
     if (!role) {
-      previewEl.textContent = "你将以数珩股份打工人身份进入叙事。";
+      previewEl.textContent = "你将以封楼夜中的幸存者身份进入叙事。";
       return;
     }
-    previewEl.textContent = `身份固定: 数珩股份牛马打工人\n当前岗位: ${role.company} · ${role.label}\n岗位说明: ${role.desc}`;
+    previewEl.textContent = `身份标签: ${data.meta.identityTag || "雾港幸存者"}\n当前岗位: ${role.company} · ${role.label}\n岗位说明: ${role.desc}`;
   }
 
   function startRun() {
@@ -556,8 +658,10 @@
   startBtn.addEventListener("click", startRun);
   roleSelect.addEventListener("change", updateRolePreview);
 
+  document.title = data.meta.title || "雾港 17 层";
+  if (brandTitleEl) brandTitleEl.textContent = data.meta.title || "雾港 17 层";
   hookTextEl.textContent = data.meta.hook;
-  premiseEl.textContent = `${data.meta.premise}\n\n组织设定: 数珩股份 = 数珩科技（AI技术）+ 焕泽信息（内容营销）。\n提示: 本作为架空叙事挑战，不对应现实结论。`;
+  premiseEl.textContent = `${data.meta.premise}\n\n${data.meta.setupHint || ""}`;
 
   openSetup(null);
   bindKeyboardShortcuts();
